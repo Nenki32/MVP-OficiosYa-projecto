@@ -7,19 +7,33 @@ using Marketplace.Api.Services;
 namespace Marketplace.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/auth")]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _auth;
 
     public AuthController(IAuthService auth) => _auth = auth;
 
-    [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+    [HttpPost("register/cliente")]
+    public async Task<IActionResult> RegisterCliente([FromBody] RegisterClienteRequest request)
     {
         try
         {
-            var response = await _auth.RegisterAsync(request);
+            var response = await _auth.RegisterClienteAsync(request);
+            return Ok(response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
+    }
+
+    [HttpPost("register/profesional")]
+    public async Task<IActionResult> RegisterProfesional([FromBody] RegisterProfesionalRequest request)
+    {
+        try
+        {
+            var response = await _auth.RegisterProfesionalAsync(request);
             return Ok(response);
         }
         catch (InvalidOperationException ex)
@@ -49,5 +63,14 @@ public class AuthController : ControllerBase
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var response = await _auth.GetCurrentUserAsync(userId);
         return Ok(response);
+    }
+
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout()
+    {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        await _auth.LogoutAsync(userId);
+        return Ok(new { message = "Sesion cerrada" });
     }
 }

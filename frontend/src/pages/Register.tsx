@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { Link } from 'react-router-dom'
 
 export default function Register() {
-  const { register } = useAuth()
+  const { registerCliente, registerProfesional } = useAuth()
   const [form, setForm] = useState({
     email: '', password: '', nombre: '', telefono: '',
     rol: 'cliente', nivelProfesional: 'standard', dni: '', numeroMatricula: ''
@@ -17,16 +17,19 @@ export default function Register() {
     e.preventDefault()
     try {
       setError('')
-      const payload: any = {
-        email: form.email, password: form.password, nombre: form.nombre,
-        telefono: form.telefono || undefined, rol: form.rol
+      if (form.rol === 'cliente') {
+        await registerCliente({
+          email: form.email, password: form.password, nombre: form.nombre,
+          telefono: form.telefono || undefined, dni: form.dni || undefined
+        })
+      } else {
+        await registerProfesional({
+          email: form.email, password: form.password, nombre: form.nombre,
+          telefono: form.telefono || undefined, dni: form.dni || undefined,
+          nivelProfesional: form.nivelProfesional,
+          numeroMatricula: form.nivelProfesional === 'premium' ? form.numeroMatricula : undefined
+        })
       }
-      if (form.rol === 'profesional') {
-        payload.nivelProfesional = form.nivelProfesional
-        payload.dni = form.dni
-        if (form.nivelProfesional === 'premium') payload.numeroMatricula = form.numeroMatricula
-      }
-      await register(payload)
     } catch (err: any) {
       setError(err.message)
     }
@@ -48,6 +51,10 @@ export default function Register() {
         <input name="password" type="password" placeholder="Contraseña" value={form.password}
           onChange={handleChange} className="w-full border rounded px-3 py-2 mb-3" required />
 
+        {/* DNI se pide a todos (dato sensible, se guarda pero no se muestra) */}
+        <input name="dni" placeholder="DNI" value={form.dni} onChange={handleChange}
+          className="w-full border rounded px-3 py-2 mb-3" />
+
         <select name="rol" value={form.rol} onChange={handleChange}
           className="w-full border rounded px-3 py-2 mb-3 bg-white">
           <option value="cliente">Cliente</option>
@@ -58,11 +65,9 @@ export default function Register() {
           <>
             <select name="nivelProfesional" value={form.nivelProfesional} onChange={handleChange}
               className="w-full border rounded px-3 py-2 mb-3 bg-white">
-              <option value="standard">Standard (DNI)</option>
-              <option value="premium">Premium (Matriculado)</option>
+              <option value="standard">Standard (sin matrícula)</option>
+              <option value="premium">Premium (matriculado)</option>
             </select>
-            <input name="dni" placeholder="DNI" value={form.dni} onChange={handleChange}
-              className="w-full border rounded px-3 py-2 mb-3" required />
             {form.nivelProfesional === 'premium' && (
               <input name="numeroMatricula" placeholder="Número de matrícula"
                 value={form.numeroMatricula} onChange={handleChange}

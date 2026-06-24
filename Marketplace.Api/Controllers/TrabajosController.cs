@@ -7,13 +7,13 @@ using Marketplace.Api.Services;
 namespace Marketplace.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/trabajos")]
 [Authorize]
 public class TrabajosController : ControllerBase
 {
-    private readonly ITrabajoService _trabajoService;
+    private readonly ITrabajoService _service;
 
-    public TrabajosController(ITrabajoService trabajoService) => _trabajoService = trabajoService;
+    public TrabajosController(ITrabajoService service) => _service = service;
 
     private int UserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
     private string UserRol => User.FindFirstValue(ClaimTypes.Role)!;
@@ -21,13 +21,12 @@ public class TrabajosController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Crear([FromBody] CrearTrabajoRequest request)
     {
-        if (UserRol != "cliente")
-            return Forbid();
+        if (UserRol != "cliente") return Forbid();
 
         try
         {
-            var response = await _trabajoService.CrearAsync(UserId, request);
-            return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
+            var response = await _service.CrearAsync(UserId, request);
+            return CreatedAtAction(nameof(Obtener), new { id = response.Id }, response);
         }
         catch (Exception ex)
         {
@@ -38,16 +37,16 @@ public class TrabajosController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Listar()
     {
-        var trabajos = await _trabajoService.ListarAsync(UserId, UserRol);
+        var trabajos = await _service.ListarAsync(UserId, UserRol);
         return Ok(trabajos);
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
+    public async Task<IActionResult> Obtener(int id)
     {
         try
         {
-            var response = await _trabajoService.ObtenerAsync(id);
+            var response = await _service.ObtenerAsync(id);
             return Ok(response);
         }
         catch (KeyNotFoundException)
@@ -61,7 +60,7 @@ public class TrabajosController : ControllerBase
     {
         try
         {
-            var response = await _trabajoService.ActualizarEstadoAsync(id, UserId, request.Estado);
+            var response = await _service.ActualizarEstadoAsync(id, UserId, request.Estado);
             return Ok(response);
         }
         catch (KeyNotFoundException) { return NotFound(); }
@@ -73,7 +72,7 @@ public class TrabajosController : ControllerBase
     {
         try
         {
-            var response = await _trabajoService.ActualizarUbicacionAsync(id, UserId, request);
+            var response = await _service.ActualizarUbicacionAsync(id, UserId, request);
             return Ok(response);
         }
         catch (KeyNotFoundException) { return NotFound(); }
@@ -85,7 +84,7 @@ public class TrabajosController : ControllerBase
     {
         try
         {
-            var response = await _trabajoService.CompletarAsync(id, UserId, request);
+            var response = await _service.CompletarAsync(id, UserId, request);
             return Ok(response);
         }
         catch (KeyNotFoundException) { return NotFound(); }

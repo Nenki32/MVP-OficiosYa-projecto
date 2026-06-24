@@ -30,6 +30,8 @@ public class Usuario
     [MaxLength(50)]
     public string? NumeroMatricula { get; set; }
 
+    public int Estado { get; set; } = (int)EstadoUsuario.Activo;
+
     public DateTime CreadoEn { get; set; } = DateTime.UtcNow;
     public DateTime ActualizadoEn { get; set; } = DateTime.UtcNow;
 

@@ -18,7 +18,7 @@ export default function Navbar() {
           )}
 
           <span className="text-gray-400">{user?.nombre}</span>
-          <button onClick={logout}
+          <button onClick={() => logout().catch(() => {})}
             className="text-red-500 hover:text-red-700 cursor-pointer">
             Salir
           </button>

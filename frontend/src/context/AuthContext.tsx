@@ -7,24 +7,33 @@ interface User {
   nombre: string
   rol: string
   nivelProfesional: string | null
+  estado: number
   token: string
 }
 
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string) => Promise<void>
-  register: (data: RegisterData) => Promise<void>
-  logout: () => void
+  registerCliente: (data: RegisterClienteData) => Promise<void>
+  registerProfesional: (data: RegisterProfesionalData) => Promise<void>
+  logout: () => Promise<void>
 }
 
-interface RegisterData {
+interface RegisterClienteData {
   email: string
   password: string
   nombre: string
   telefono?: string
-  rol: string
-  nivelProfesional?: string
   dni?: string
+}
+
+interface RegisterProfesionalData {
+  email: string
+  password: string
+  nombre: string
+  telefono?: string
+  dni?: string
+  nivelProfesional: string
   numeroMatricula?: string
 }
 
@@ -40,28 +49,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user?.token) localStorage.setItem('token', user.token)
   }, [user])
 
+  const setAuth = (res: User) => {
+    setUser(res)
+    localStorage.setItem('user', JSON.stringify(res))
+    localStorage.setItem('token', res.token)
+  }
+
   const login = async (email: string, password: string) => {
     const res = await api.post<User>('/auth/login', { email, password })
-    setUser(res)
-    localStorage.setItem('user', JSON.stringify(res))
-    localStorage.setItem('token', res.token)
+    setAuth(res)
   }
 
-  const register = async (data: RegisterData) => {
-    const res = await api.post<User>('/auth/register', data)
-    setUser(res)
-    localStorage.setItem('user', JSON.stringify(res))
-    localStorage.setItem('token', res.token)
+  const registerCliente = async (data: RegisterClienteData) => {
+    const res = await api.post<User>('/auth/register/cliente', data)
+    setAuth(res)
   }
 
-  const logout = () => {
+  const registerProfesional = async (data: RegisterProfesionalData) => {
+    const res = await api.post<User>('/auth/register/profesional', data)
+    setAuth(res)
+  }
+
+  const logout = async () => {
+    await api.post('/auth/logout').catch(() => {})
     setUser(null)
     localStorage.removeItem('user')
     localStorage.removeItem('token')
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, login, registerCliente, registerProfesional, logout }}>
       {children}
     </AuthContext.Provider>
   )
