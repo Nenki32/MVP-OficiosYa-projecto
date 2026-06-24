@@ -31,9 +31,8 @@ public class AppDbContext : DbContext
                 "(rol = 'profesional' AND nivel_profesional IN ('standard', 'premium')) OR " +
                 "(rol = 'admin' AND nivel_profesional IS NULL)"));
             e.ToTable(t => t.HasCheckConstraint("CK_Usuarios_dni",
-                "(rol = 'cliente' AND dni IS NULL) OR " +
                 "(rol = 'profesional' AND dni IS NOT NULL) OR " +
-                "(rol = 'admin' AND dni IS NULL)"));
+                "(rol IN ('cliente', 'admin'))"));
             e.ToTable(t => t.HasCheckConstraint("CK_Usuarios_matricula",
                 "(rol = 'cliente' AND numero_matricula IS NULL) OR " +
                 "(rol = 'profesional' AND nivel_profesional = 'standard' AND numero_matricula IS NULL) OR " +
