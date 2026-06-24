@@ -25,3 +25,7 @@ Thumbs.db
 # SQL Server
 *.ldf
 *.mdf
+
+# Secrets
+.env
+appsettings.Development.json
