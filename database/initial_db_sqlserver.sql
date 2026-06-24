@@ -132,6 +132,26 @@ END
 GO
 
 -- ============================================================
+-- POSTULACIONES (profesional se postula a un trabajo)
+-- ============================================================
+IF OBJECT_ID(N'dbo.Postulaciones', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Postulaciones (
+        id              INT IDENTITY(1,1)   NOT NULL,
+        trabajo_id      INT                 NOT NULL,
+        profesional_id  INT                 NOT NULL,
+        presupuesto     DECIMAL(10,2)       NULL,
+        creado_en       DATETIME2           NOT NULL DEFAULT SYSUTCDATETIME(),
+
+        CONSTRAINT PK_Postulaciones               PRIMARY KEY CLUSTERED (id),
+        CONSTRAINT FK_Postulaciones_Trabajo       FOREIGN KEY (trabajo_id)     REFERENCES dbo.Trabajos(id) ON DELETE CASCADE,
+        CONSTRAINT FK_Postulaciones_Profesional   FOREIGN KEY (profesional_id) REFERENCES dbo.Usuarios(id),
+        CONSTRAINT UQ_Postulaciones_trabajo_prof  UNIQUE (trabajo_id, profesional_id)
+    );
+END
+GO
+
+-- ============================================================
 -- PAGOS / TRANSACCIONES
 -- Registro contable de cada pago asociado a un trabajo.
 -- Cuando el pago es en efectivo, se registra el cobro completo
