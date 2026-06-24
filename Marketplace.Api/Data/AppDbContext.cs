@@ -24,15 +24,20 @@ public class AppDbContext : DbContext
             e.Property(u => u.Rol).HasMaxLength(20);
             e.Property(u => u.NivelProfesional).HasMaxLength(20);
 
-            e.ToTable(t => t.HasCheckConstraint("CK_Usuarios_rol", "rol IN ('cliente', 'profesional')"));
+            e.ToTable(t => t.HasCheckConstraint("CK_Usuarios_rol", "rol IN ('cliente', 'profesional', 'admin')"));
             e.ToTable(t => t.HasCheckConstraint("CK_Usuarios_nivel",
-                "(rol = 'cliente' AND nivel_profesional IS NULL) OR (rol = 'profesional' AND nivel_profesional IN ('standard', 'premium'))"));
+                "(rol = 'cliente' AND nivel_profesional IS NULL) OR " +
+                "(rol = 'profesional' AND nivel_profesional IN ('standard', 'premium')) OR " +
+                "(rol = 'admin' AND nivel_profesional IS NULL)"));
             e.ToTable(t => t.HasCheckConstraint("CK_Usuarios_dni",
-                "(rol = 'cliente' AND dni IS NULL) OR (rol = 'profesional' AND dni IS NOT NULL)"));
+                "(rol = 'cliente' AND dni IS NULL) OR " +
+                "(rol = 'profesional' AND dni IS NOT NULL) OR " +
+                "(rol = 'admin' AND dni IS NULL)"));
             e.ToTable(t => t.HasCheckConstraint("CK_Usuarios_matricula",
                 "(rol = 'cliente' AND numero_matricula IS NULL) OR " +
                 "(rol = 'profesional' AND nivel_profesional = 'standard' AND numero_matricula IS NULL) OR " +
-                "(rol = 'profesional' AND nivel_profesional = 'premium' AND numero_matricula IS NOT NULL)"));
+                "(rol = 'profesional' AND nivel_profesional = 'premium' AND numero_matricula IS NOT NULL) OR " +
+                "(rol = 'admin' AND numero_matricula IS NULL)"));
         });
 
         modelBuilder.Entity<ProfesionalServicio>(e =>

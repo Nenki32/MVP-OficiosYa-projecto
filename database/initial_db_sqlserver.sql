@@ -37,19 +37,22 @@ BEGIN
 
         CONSTRAINT PK_Usuarios              PRIMARY KEY CLUSTERED (id),
         CONSTRAINT UQ_Usuarios_email        UNIQUE (email),
-        CONSTRAINT CK_Usuarios_rol          CHECK (rol IN ('cliente', 'profesional')),
+        CONSTRAINT CK_Usuarios_rol          CHECK (rol IN ('cliente', 'profesional', 'admin')),
         CONSTRAINT CK_Usuarios_nivel        CHECK (
             (rol = 'cliente' AND nivel_profesional IS NULL)
             OR (rol = 'profesional' AND nivel_profesional IN ('standard', 'premium'))
+            OR (rol = 'admin' AND nivel_profesional IS NULL)
         ),
         CONSTRAINT CK_Usuarios_dni          CHECK (
             (rol = 'cliente' AND dni IS NULL)
             OR (rol = 'profesional' AND dni IS NOT NULL)
+            OR (rol = 'admin' AND dni IS NULL)
         ),
         CONSTRAINT CK_Usuarios_matricula    CHECK (
             (rol = 'cliente' AND numero_matricula IS NULL)
             OR (rol = 'profesional' AND nivel_profesional = 'standard' AND numero_matricula IS NULL)
             OR (rol = 'profesional' AND nivel_profesional = 'premium' AND numero_matricula IS NOT NULL)
+            OR (rol = 'admin' AND numero_matricula IS NULL)
         )
     );
 END

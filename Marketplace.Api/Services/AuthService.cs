@@ -22,8 +22,13 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
+        if (request.Rol?.ToLower() == "admin")
+            throw new InvalidOperationException("No podes registrarte como admin.");
+
         if (await _db.Usuarios.AnyAsync(u => u.Email == request.Email))
             throw new InvalidOperationException("El email ya esta registrado.");
+
+        var rol = request.Rol!.ToLower();
 
         var usuario = new Usuario
         {
@@ -31,10 +36,10 @@ public class AuthService : IAuthService
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             Nombre = request.Nombre,
             Telefono = request.Telefono,
-            Rol = request.Rol.ToLower(),
-            NivelProfesional = request.Rol.ToLower() == "profesional" ? request.NivelProfesional?.ToLower() : null,
-            Dni = request.Rol.ToLower() == "profesional" ? request.Dni : null,
-            NumeroMatricula = request.Rol.ToLower() == "profesional" && request.NivelProfesional?.ToLower() == "premium"
+            Rol = rol,
+            NivelProfesional = rol == "profesional" ? request.NivelProfesional?.ToLower() : null,
+            Dni = rol == "profesional" ? request.Dni : null,
+            NumeroMatricula = rol == "profesional" && request.NivelProfesional?.ToLower() == "premium"
                 ? request.NumeroMatricula
                 : null
         };

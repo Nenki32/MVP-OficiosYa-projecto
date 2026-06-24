@@ -1,4 +1,5 @@
 using System.Text;
+using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -6,10 +7,21 @@ using Microsoft.OpenApi.Models;
 using Marketplace.Api.Data;
 using Marketplace.Api.Services;
 
+Env.Load();
+
 var builder = WebApplication.CreateBuilder(args);
 
-var connString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Server=.\\SQLEXPRESS;Database=MarketplaceServicios;Trusted_Connection=True;TrustServerCertificate=True;";
+builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+{
+    ["ConnectionStrings:DefaultConnection"] = Env.GetString("DB_CONNECTION"),
+    ["Jwt:Key"] = Env.GetString("JWT_KEY"),
+    ["Jwt:Issuer"] = Env.GetString("JWT_ISSUER"),
+    ["Jwt:Audience"] = Env.GetString("JWT_AUDIENCE"),
+    ["Admin:Email"] = Env.GetString("ADMIN_EMAIL"),
+    ["Admin:Password"] = Env.GetString("ADMIN_PASSWORD"),
+});
+
+var connString = builder.Configuration.GetConnectionString("DefaultConnection")!;
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connString));
@@ -84,6 +96,28 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    if (!await db.Usuarios.AnyAsync(u => u.Rol == "admin"))
+    {
+        var adminEmail = builder.Configuration["Admin:Email"] ?? "admin@encoya.com";
+        var adminPass = builder.Configuration["Admin:Password"] ?? "Admin123!";
+
+        db.Usuarios.Add(new Marketplace.Api.Models.Usuario
+        {
+            Email = adminEmail,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPass),
+            Nombre = "Administrador",
+            Rol = "admin"
+        });
+
+        await db.SaveChangesAsync();
+        Console.WriteLine($"> Admin creado: {adminEmail} / {adminPass}");
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {
