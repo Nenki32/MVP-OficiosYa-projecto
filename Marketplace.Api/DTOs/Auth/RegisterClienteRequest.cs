@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Marketplace.Api.DTOs.Auth;
 
-public class RegisterRequest
+public class RegisterClienteRequest
 {
     [Required, EmailAddress, MaxLength(255)]
     public string Email { get; set; } = null!;
@@ -16,12 +16,6 @@ public class RegisterRequest
     [MaxLength(50)]
     public string? Telefono { get; set; }
 
-    [Required]
-    public string Rol { get; set; } = null!;
-
-    public string? NivelProfesional { get; set; }
-
+    [MaxLength(20)]
     public string? Dni { get; set; }
-
-    public string? NumeroMatricula { get; set; }
 }

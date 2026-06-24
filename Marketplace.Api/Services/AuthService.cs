@@ -20,15 +20,10 @@ public class AuthService : IAuthService
         _config = config;
     }
 
-    public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+    public async Task<AuthResponse> RegisterClienteAsync(RegisterClienteRequest request)
     {
-        if (request.Rol?.ToLower() == "admin")
-            throw new InvalidOperationException("No podes registrarte como admin.");
-
         if (await _db.Usuarios.AnyAsync(u => u.Email == request.Email))
             throw new InvalidOperationException("El email ya esta registrado.");
-
-        var rol = request.Rol!.ToLower();
 
         var usuario = new Usuario
         {
@@ -36,18 +31,41 @@ public class AuthService : IAuthService
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             Nombre = request.Nombre,
             Telefono = request.Telefono,
-            Rol = rol,
-            NivelProfesional = rol == "profesional" ? request.NivelProfesional?.ToLower() : null,
-            Dni = rol == "profesional" ? request.Dni : null,
-            NumeroMatricula = rol == "profesional" && request.NivelProfesional?.ToLower() == "premium"
-                ? request.NumeroMatricula
-                : null
+            Rol = "cliente",
+            Dni = request.Dni,
+            Estado = (int)EstadoUsuario.Activo
         };
 
         _db.Usuarios.Add(usuario);
         await _db.SaveChangesAsync();
 
-        return ToResponse(usuario, GenerateToken(usuario));
+        return ToAuthResponse(usuario, GenerateToken(usuario));
+    }
+
+    public async Task<AuthResponse> RegisterProfesionalAsync(RegisterProfesionalRequest request)
+    {
+        if (await _db.Usuarios.AnyAsync(u => u.Email == request.Email))
+            throw new InvalidOperationException("El email ya esta registrado.");
+
+        var nivel = request.NivelProfesional?.ToLower() == "premium" ? "premium" : "standard";
+
+        var usuario = new Usuario
+        {
+            Email = request.Email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            Nombre = request.Nombre,
+            Telefono = request.Telefono,
+            Rol = "profesional",
+            NivelProfesional = nivel,
+            Dni = request.Dni,
+            NumeroMatricula = nivel == "premium" ? request.NumeroMatricula : null,
+            Estado = (int)EstadoUsuario.Activo
+        };
+
+        _db.Usuarios.Add(usuario);
+        await _db.SaveChangesAsync();
+
+        return ToAuthResponse(usuario, GenerateToken(usuario));
     }
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
@@ -58,7 +76,11 @@ public class AuthService : IAuthService
         if (!BCrypt.Net.BCrypt.Verify(request.Password, usuario.PasswordHash))
             throw new UnauthorizedAccessException("Credenciales invalidas.");
 
-        return ToResponse(usuario, GenerateToken(usuario));
+        usuario.Estado = (int)EstadoUsuario.Activo;
+        usuario.ActualizadoEn = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return ToAuthResponse(usuario, GenerateToken(usuario));
     }
 
     public async Task<AuthResponse> GetCurrentUserAsync(int userId)
@@ -66,7 +88,18 @@ public class AuthService : IAuthService
         var usuario = await _db.Usuarios.FindAsync(userId)
             ?? throw new InvalidOperationException("Usuario no encontrado.");
 
-        return ToResponse(usuario, GenerateToken(usuario));
+        return ToAuthResponse(usuario, GenerateToken(usuario));
+    }
+
+    public async Task LogoutAsync(int userId)
+    {
+        var usuario = await _db.Usuarios.FindAsync(userId);
+        if (usuario != null)
+        {
+            usuario.Estado = (int)EstadoUsuario.NoActivo;
+            usuario.ActualizadoEn = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+        }
     }
 
     private string GenerateToken(Usuario usuario)
@@ -80,27 +113,28 @@ public class AuthService : IAuthService
             new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
             new Claim(ClaimTypes.Email, usuario.Email),
             new Claim(ClaimTypes.Role, usuario.Rol),
-            new Claim("nivel_profesional", usuario.NivelProfesional ?? "")
+            new Claim("estado", usuario.Estado.ToString())
         };
 
         var token = new JwtSecurityToken(
             issuer: _config["Jwt:Issuer"],
             audience: _config["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddDays(7),
+            expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: creds
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    private static AuthResponse ToResponse(Usuario u, string token) => new()
+    private static AuthResponse ToAuthResponse(Usuario u, string token) => new()
     {
         Id = u.Id,
         Email = u.Email,
         Nombre = u.Nombre,
         Rol = u.Rol,
         NivelProfesional = u.NivelProfesional,
+        Estado = u.Estado,
         Token = token
     };
 }

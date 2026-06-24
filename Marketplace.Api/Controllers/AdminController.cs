@@ -30,8 +30,7 @@ public class AdminController : ControllerBase
                 u.Telefono,
                 u.Rol,
                 u.NivelProfesional,
-                u.Dni,
-                u.NumeroMatricula,
+                u.Estado,
                 u.CreadoEn
             })
             .ToListAsync();
@@ -52,8 +51,8 @@ public class AdminController : ControllerBase
                 u.Telefono,
                 u.Rol,
                 u.NivelProfesional,
-                u.Dni,
                 u.NumeroMatricula,
+                u.Estado,
                 u.CreadoEn,
                 u.ActualizadoEn
             })

@@ -67,6 +67,16 @@ public class CuentaCorrienteService : ICuentaCorrienteService
             Referencia = $"Pago de deuda - $ {monto:N2}"
         };
 
+        if (nuevoSaldo >= 0)
+        {
+            var profesional = await _db.Usuarios.FindAsync(profesionalId);
+            if (profesional != null)
+            {
+                profesional.Estado = (int)EstadoUsuario.Activo;
+                profesional.ActualizadoEn = DateTime.UtcNow;
+            }
+        }
+
         _db.CuentaCorriente.Add(entry);
         await _db.SaveChangesAsync();
 

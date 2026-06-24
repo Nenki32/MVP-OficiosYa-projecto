@@ -9,12 +9,9 @@ public class TrabajoService : ITrabajoService
 {
     private readonly AppDbContext _db;
 
-    public TrabajoService(AppDbContext db)
-    {
-        _db = db;
-    }
+    public TrabajoService(AppDbContext db) => _db = db;
 
-    public async Task<TrabajoResponse> CrearAsync(int clienteId, CrearTrabajoRequest request)
+    public async Task<TrabajoDetalleDto> CrearAsync(int clienteId, CrearTrabajoRequest request)
     {
         var trabajo = new Trabajo
         {
@@ -34,7 +31,7 @@ public class TrabajoService : ITrabajoService
         return await ObtenerAsync(trabajo.Id);
     }
 
-    public async Task<List<TrabajoResponse>> ListarAsync(int usuarioId, string rol)
+    public async Task<List<TrabajoDto>> ListarAsync(int usuarioId, string rol)
     {
         var query = _db.Trabajos
             .Include(t => t.Cliente)
@@ -48,23 +45,41 @@ public class TrabajoService : ITrabajoService
             query = query.Where(t => t.ProfesionalId == usuarioId || t.ProfesionalId == null);
 
         return await query.OrderByDescending(t => t.CreadoEn)
-            .Select(t => MapToResponse(t))
+            .Select(t => new TrabajoDto
+            {
+                Id = t.Id,
+                ClienteId = t.ClienteId,
+                ClienteNombre = t.Cliente.Nombre,
+                ProfesionalId = t.ProfesionalId,
+                ProfesionalNombre = t.Profesional != null ? t.Profesional.Nombre : null,
+                ServicioId = t.ServicioId,
+                ServicioNombre = t.Servicio.Nombre,
+                Estado = t.Estado,
+                TipoPago = t.TipoPago,
+                LatitudDestino = t.LatitudDestino,
+                LongitudDestino = t.LongitudDestino,
+                DireccionDestino = t.DireccionDestino,
+                CreadoEn = t.CreadoEn
+            })
             .ToListAsync();
     }
 
-    public async Task<TrabajoResponse> ObtenerAsync(int id)
+    public async Task<TrabajoDetalleDto> ObtenerAsync(int id)
     {
         var trabajo = await _db.Trabajos
             .Include(t => t.Cliente)
             .Include(t => t.Profesional)
             .Include(t => t.Servicio)
+            .Include(t => t.Pago)
+            .Include(t => t.Resenia!)
+                .ThenInclude(r => r.Cliente)
             .FirstOrDefaultAsync(t => t.Id == id)
             ?? throw new KeyNotFoundException("Trabajo no encontrado.");
 
-        return MapToResponse(trabajo);
+        return MapToDetalle(trabajo);
     }
 
-    public async Task<TrabajoResponse> ActualizarEstadoAsync(int id, int usuarioId, string nuevoEstado)
+    public async Task<TrabajoDetalleDto> ActualizarEstadoAsync(int id, int usuarioId, string nuevoEstado)
     {
         var trabajo = await _db.Trabajos.FindAsync(id)
             ?? throw new KeyNotFoundException("Trabajo no encontrado.");
@@ -97,7 +112,7 @@ public class TrabajoService : ITrabajoService
         return await ObtenerAsync(id);
     }
 
-    public async Task<TrabajoResponse> ActualizarUbicacionAsync(int id, int usuarioId, ActualizarUbicacionRequest request)
+    public async Task<TrabajoDetalleDto> ActualizarUbicacionAsync(int id, int usuarioId, ActualizarUbicacionRequest request)
     {
         var trabajo = await _db.Trabajos.FindAsync(id)
             ?? throw new KeyNotFoundException("Trabajo no encontrado.");
@@ -117,7 +132,7 @@ public class TrabajoService : ITrabajoService
         return await ObtenerAsync(id);
     }
 
-    public async Task<TrabajoResponse> CompletarAsync(int id, int usuarioId, CompletarTrabajoRequest request)
+    public async Task<TrabajoDetalleDto> CompletarAsync(int id, int usuarioId, CompletarTrabajoRequest request)
     {
         var trabajo = await _db.Trabajos
             .Include(t => t.Profesional)
@@ -164,6 +179,16 @@ public class TrabajoService : ITrabajoService
                 SaldoPosterior = nuevoSaldo,
                 Referencia = $"Comision 15% - Trabajo #{trabajo.Id}"
             });
+
+            if (nuevoSaldo < 0)
+            {
+                var profesional = await _db.Usuarios.FindAsync(usuarioId);
+                if (profesional != null && profesional.Estado != (int)EstadoUsuario.Deudor)
+                {
+                    profesional.Estado = (int)EstadoUsuario.Deudor;
+                    profesional.ActualizadoEn = DateTime.UtcNow;
+                }
+            }
         }
 
         await _db.SaveChangesAsync();
@@ -182,7 +207,7 @@ public class TrabajoService : ITrabajoService
         await _db.SaveChangesAsync();
     }
 
-    private static TrabajoResponse MapToResponse(Trabajo t) => new()
+    private static TrabajoDetalleDto MapToDetalle(Trabajo t) => new()
     {
         Id = t.Id,
         ClienteId = t.ClienteId,
@@ -199,6 +224,19 @@ public class TrabajoService : ITrabajoService
         DireccionDestino = t.DireccionDestino,
         LatitudInicio = t.LatitudInicio,
         LongitudInicio = t.LongitudInicio,
+        Pago = t.Pago != null ? new PagoInfo
+        {
+            MontoTotal = t.Pago.MontoTotal,
+            Comision = t.Pago.Comision,
+            TipoPago = t.Pago.TipoPago,
+            Estado = t.Pago.Estado
+        } : null,
+        Resenia = t.Resenia != null ? new ReseniaInfo
+        {
+            Puntuacion = t.Resenia.Puntuacion,
+            Comentario = t.Resenia.Comentario,
+            ClienteNombre = t.Resenia.Cliente?.Nombre
+        } : null,
         CreadoEn = t.CreadoEn,
         ActualizadoEn = t.ActualizadoEn
     };
