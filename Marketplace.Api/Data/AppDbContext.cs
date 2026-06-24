@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<Usuario>(e =>
         {
+            e.ToTable("Usuarios");
             e.HasIndex(u => u.Email).IsUnique();
 
             e.Property(u => u.Rol).HasMaxLength(20);
@@ -40,8 +41,11 @@ public class AppDbContext : DbContext
                 "(rol = 'admin' AND numero_matricula IS NULL)"));
         });
 
+        modelBuilder.Entity<Servicio>(e => e.ToTable("Servicios"));
+
         modelBuilder.Entity<ProfesionalServicio>(e =>
         {
+            e.ToTable("ProfesionalServicios");
             e.HasKey(ps => new { ps.ProfesionalId, ps.ServicioId });
 
             e.HasOne(ps => ps.Profesional)
@@ -57,6 +61,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Trabajo>(e =>
         {
+            e.ToTable("Trabajos");
             e.HasOne(t => t.Cliente)
                 .WithMany(u => u.TrabajosComoCliente)
                 .HasForeignKey(t => t.ClienteId)
@@ -84,6 +89,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Pago>(e =>
         {
+            e.ToTable("Pagos");
             e.HasOne(p => p.Trabajo)
                 .WithOne(t => t.Pago)
                 .HasForeignKey<Pago>(p => p.TrabajoId)
@@ -100,6 +106,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<CuentaCorriente>(e =>
         {
+            e.ToTable("CuentaCorriente");
             e.HasOne(cc => cc.Profesional)
                 .WithMany(u => u.CuentaCorriente)
                 .HasForeignKey(cc => cc.ProfesionalId)
@@ -121,6 +128,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Resenia>(e =>
         {
+            e.ToTable("Resenias");
             e.HasIndex(r => r.TrabajoId).IsUnique();
 
             e.HasOne(r => r.Cliente)

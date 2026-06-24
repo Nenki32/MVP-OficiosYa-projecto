@@ -24,7 +24,8 @@ builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
 var connString = builder.Configuration.GetConnectionString("DefaultConnection")!;
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(connString));
+    options.UseSqlServer(connString)
+           .UseSnakeCaseNamingConvention());
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
