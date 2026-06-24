@@ -85,6 +85,28 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    if (!await db.Usuarios.AnyAsync(u => u.Rol == "admin"))
+    {
+        var adminEmail = builder.Configuration["Admin:Email"] ?? "admin@encoya.com";
+        var adminPass = builder.Configuration["Admin:Password"] ?? "Admin123!";
+
+        db.Usuarios.Add(new Marketplace.Api.Models.Usuario
+        {
+            Email = adminEmail,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPass),
+            Nombre = "Administrador",
+            Rol = "admin"
+        });
+
+        await db.SaveChangesAsync();
+        Console.WriteLine($"> Admin creado: {adminEmail} / {adminPass}");
+    }
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
