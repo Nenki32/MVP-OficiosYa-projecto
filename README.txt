@@ -1,15 +1,12 @@
-# 🏡 MVP Encoya: Marketplace de Servicios del Hogar
+🏡 MVP Encoya: Marketplace de Servicios del Hogar
 
-> **Conecta clientes con profesionales del hogar en tiempo real.** 
+> Conecta clientes con profesionales del hogar en tiempo real.** 
 > Encuentra gasistas, electricistas, plomeros, cerrajeros y más con geolocalización integrada.
 
----
-
-## 🏗️ Arquitectura
+🏗️ Arquitectura
 
 El sistema está diseñado bajo un modelo de **monolito modular en capas**, garantizando una clara separación de responsabilidades y un mantenimiento ágil.
 
-```text
   Cliente (Web/React)
           │
   API REST (.NET 9 / C#)
@@ -17,8 +14,6 @@ El sistema está diseñado bajo un modelo de **monolito modular en capas**, gara
   SQL Server Express
 
 Flujo de la solución: Controllers ➔ Services ➔ Data (EF Core) ➔ SQL Server
-
----
 
 💻 Stack Tecnológico
 
@@ -36,7 +31,6 @@ Frontend: React (Próximamente)
 
 Mobile: React Native (Próximamente)
 
----
 🗄️ Base de Datos
 
 Tablas Principales
@@ -54,7 +48,7 @@ Pagos: Registro contable de transacciones, aplicando automáticamente una comisi
 CuentaCorriente: Ledger (libro contable) auditable que registra las deudas de los profesionales. Cuando se completa un trabajo en efectivo, se debita de forma automática el 15% de comisión.
 
 Reseñas: Sistema de puntuación de 1 a 5 estrellas asociado a cada trabajo finalizado.
----
+
 ✨ Funcionalidades
 
 🔐 Registro y Autenticación
@@ -138,7 +132,7 @@ Reseñas Públicas
 
 GET/api/profesionales/{id}/resenias - Consultar el historial de reseñas de un profesional
 
----
+
 
 🚀 Escalabilidad y Evolución
 
@@ -179,7 +173,6 @@ dotnet run --project Marketplace.Api
 Abrí tu navegador e ingresá a la interfaz interactiva de pruebas:
 👉 https://localhost:7277/swagger
 
----
 
 🌿 Git Workflow
 
