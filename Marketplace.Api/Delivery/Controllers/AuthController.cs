@@ -68,23 +68,6 @@ public class AuthController : ControllerBase
         }
     }
 
-    [HttpGet("me")]
-    [Authorize]
-    public async Task<IActionResult> Me()
-    {
-        try
-        {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null) return Unauthorized();
-            var response = await _auth.GetCurrentUserAsync(int.Parse(userIdClaim));
-            return Ok(response);
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Error interno del servidor" });
-        }
-    }
-
     [HttpPost("logout")]
     [Authorize]
     public async Task<IActionResult> Logout()

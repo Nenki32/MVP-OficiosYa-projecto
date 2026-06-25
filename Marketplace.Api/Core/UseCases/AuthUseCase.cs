@@ -35,7 +35,7 @@ public class AuthUseCase : IAuthService
 
         await _usuarioRepo.AddAsync(usuario);
 
-        return ToAuthResponse(usuario, _jwt.GenerateToken(BuildClaims(usuario)));
+        return ToAuthResponse(usuario, null);
     }
 
     public async Task<AuthResponse> RegisterProfesionalAsync(RegisterProfesionalRequest request)
@@ -59,7 +59,7 @@ public class AuthUseCase : IAuthService
 
         await _usuarioRepo.AddAsync(usuario);
 
-        return ToAuthResponse(usuario, _jwt.GenerateToken(BuildClaims(usuario)));
+        return ToAuthResponse(usuario, null);
     }
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
@@ -74,15 +74,8 @@ public class AuthUseCase : IAuthService
         usuario.ActualizadoEn = DateTime.UtcNow;
         await _usuarioRepo.UpdateAsync(usuario);
 
-        return ToAuthResponse(usuario, _jwt.GenerateToken(BuildClaims(usuario)));
-    }
-
-    public async Task<AuthResponse> GetCurrentUserAsync(int userId)
-    {
-        var usuario = await _usuarioRepo.GetByIdAsync(userId)
-            ?? throw new InvalidOperationException("Usuario no encontrado.");
-
-        return ToAuthResponse(usuario, _jwt.GenerateToken(BuildClaims(usuario)));
+        var token = usuario.Rol == "admin" ? _jwt.GenerateToken(BuildClaims(usuario)) : null;
+        return ToAuthResponse(usuario, token);
     }
 
     public async Task LogoutAsync(int userId)
@@ -104,7 +97,7 @@ public class AuthUseCase : IAuthService
         new Claim("estado", usuario.Estado.ToString())
     ];
 
-    private static AuthResponse ToAuthResponse(Usuario u, string token) => new()
+    private static AuthResponse ToAuthResponse(Usuario u, string? token) => new()
     {
         Id = u.Id,
         Email = u.Email,
