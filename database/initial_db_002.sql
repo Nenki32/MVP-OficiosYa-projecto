@@ -59,7 +59,7 @@ END
 GO
 
 -- ============================================================
--- CATEGOR√çAS DE SERVICIOS
+-- CATEGORÕAS DE SERVICIOS
 -- ============================================================
 IF OBJECT_ID(N'dbo.Servicios', N'U') IS NULL
 BEGIN
@@ -76,7 +76,7 @@ END
 GO
 
 -- ============================================================
--- RELACI√ìN PROFESIONAL <-> SERVICIOS (M:N)
+-- RELACI”N PROFESIONAL <-> SERVICIOS (M:N)
 -- ============================================================
 IF OBJECT_ID(N'dbo.ProfesionalServicios', N'U') IS NULL
 BEGIN
@@ -215,7 +215,7 @@ END
 GO
 
 -- ============================================================
--- RESE√ëAS / REVIEWS
+-- RESE—AS / REVIEWS
 -- Cliente califica al profesional al finalizar el trabajo.
 -- ============================================================
 IF OBJECT_ID(N'dbo.Resenias', N'U') IS NULL
@@ -240,7 +240,7 @@ END
 GO
 
 -- ============================================================
--- CAT√ÅLOGO BASE DE SERVICIOS
+-- CAT¡LOGO BASE DE SERVICIOS
 -- ============================================================
 IF NOT EXISTS (SELECT 1 FROM dbo.Servicios)
 BEGIN
@@ -259,10 +259,10 @@ END
 GO
 
 -- ============================================================
--- √çNDICES PARA RENDIMIENTO
+-- ÕNDICES PARA RENDIMIENTO
 -- ============================================================
 
--- B√∫squeda de profesionales por servicio
+-- B˙squeda de profesionales por servicio
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ProfesionalServicios_servicio')
     CREATE NONCLUSTERED INDEX IX_ProfesionalServicios_servicio
         ON dbo.ProfesionalServicios (servicio_id)
@@ -283,7 +283,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Trabajos_profesional')
         INCLUDE (cliente_id, servicio_id, creado_en);
 GO
 
--- Buscar trabajos pendientes por ubicaci√≥n (geolocalizaci√≥n)
+-- Buscar trabajos pendientes por ubicaciÛn (geolocalizaciÛn)
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Trabajos_pendientes_geo')
     CREATE NONCLUSTERED INDEX IX_Trabajos_pendientes_geo
         ON dbo.Trabajos (estado, latitud_destino, longitud_destino)
@@ -297,7 +297,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_CuentaCorriente_profes
         INCLUDE (monto, saldo_posterior, tipo);
 GO
 
--- B√∫squeda de rese√±as por profesional
+-- B˙squeda de reseÒas por profesional
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Resenias_profesional')
     CREATE NONCLUSTERED INDEX IX_Resenias_profesional
         ON dbo.Resenias (profesional_id, puntuacion)
