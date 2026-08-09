@@ -11,19 +11,41 @@ using Marketplace.Api.Infrastructure.Data;
 using Marketplace.Api.Infrastructure.Data.Repositories;
 using Marketplace.Api.Infrastructure.Security;
 
-Env.Load();
+// El .env es solo una comodidad para desarrollo local. En un servidor no
+// existe, y su ausencia no debe impedir el arranque: ahi la configuracion
+// llega por variables de entorno de la plataforma.
+try { Env.Load(); } catch { /* sin .env: se usan las variables del entorno */ }
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Lee primero la variable de entorno del proceso (la que define la plataforma
+// de hosting) y cae al .env solo si no esta definida.
+static string? Cfg(string clave) =>
+    Environment.GetEnvironmentVariable(clave) ?? Env.GetString(clave);
+
 builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
 {
-    ["ConnectionStrings:DefaultConnection"] = Env.GetString("DB_CONNECTION"),
-    ["Jwt:Key"] = Env.GetString("JWT_KEY"),
-    ["Jwt:Issuer"] = Env.GetString("JWT_ISSUER"),
-    ["Jwt:Audience"] = Env.GetString("JWT_AUDIENCE"),
-    ["Admin:Email"] = Env.GetString("ADMIN_EMAIL"),
-    ["Admin:Password"] = Env.GetString("ADMIN_PASSWORD"),
+    ["ConnectionStrings:DefaultConnection"] = Cfg("DB_CONNECTION"),
+    ["Jwt:Key"] = Cfg("JWT_KEY"),
+    ["Jwt:Issuer"] = Cfg("JWT_ISSUER"),
+    ["Jwt:Audience"] = Cfg("JWT_AUDIENCE"),
+    ["Admin:Email"] = Cfg("ADMIN_EMAIL"),
+    ["Admin:Password"] = Cfg("ADMIN_PASSWORD"),
 });
+
+// Fallar temprano y con un mensaje claro es mucho mejor que una
+// NullReferenceException a mitad del arranque en un servidor remoto.
+foreach (var (clave, valor) in new[]
+{
+    ("DB_CONNECTION", builder.Configuration.GetConnectionString("DefaultConnection")),
+    ("JWT_KEY", builder.Configuration["Jwt:Key"]),
+})
+{
+    if (string.IsNullOrWhiteSpace(valor))
+        throw new InvalidOperationException(
+            $"Falta la variable de entorno {clave}. En local va en Marketplace.Api/.env; " +
+            "en el servidor, en la configuracion de la plataforma.");
+}
 
 var connString = builder.Configuration.GetConnectionString("DefaultConnection")!;
 
