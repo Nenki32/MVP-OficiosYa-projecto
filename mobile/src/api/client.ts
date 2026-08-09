@@ -41,6 +41,22 @@ export class ApiError extends Error {
   }
 }
 
+const dormir = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+/**
+ * El plan gratuito de Render apaga el servicio tras unos minutos sin uso.
+ * Mientras despierta, su borde responde 404 con texto plano en vez de poner
+ * la peticion en espera. Nuestra API siempre responde JSON, asi que un 404
+ * que no es JSON significa "todavia no hay servidor", no "no existe".
+ */
+function esDespertando(res: Response) {
+  const tipo = res.headers.get('content-type') ?? ''
+  return res.status === 404 && !tipo.includes('json')
+}
+
+const REINTENTOS = 5
+const ESPERA_MS = 4000
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await tokenStorage.get()
 
@@ -50,15 +66,26 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
   if (token) headers.Authorization = `Bearer ${token}`
 
-  let res: Response
-  try {
-    res = await fetch(`${API_BASE}${path}`, { ...options, headers })
-  } catch {
-    // fetch solo falla asi cuando no hubo respuesta: red caida, IP mal,
-    // backend apagado o escuchando solo en localhost.
+  let res: Response | null = null
+
+  for (let intento = 0; intento <= REINTENTOS; intento++) {
+    try {
+      res = await fetch(`${API_BASE}${path}`, { ...options, headers })
+    } catch {
+      // fetch solo falla asi cuando no hubo respuesta: sin red, URL mal, o
+      // el servidor todavia no acepta conexiones.
+      if (intento < REINTENTOS) { await dormir(ESPERA_MS); continue }
+      throw new ApiError('No se pudo conectar con el servidor.', 0)
+    }
+
+    if (!esDespertando(res)) break
+    if (intento < REINTENTOS) await dormir(ESPERA_MS)
+  }
+
+  if (!res || esDespertando(res)) {
     throw new ApiError(
-      'No se pudo conectar con el servidor. Revisa que estes en la misma red.',
-      0,
+      'El servidor está tardando en responder. Probá de nuevo en un minuto.',
+      503,
     )
   }
 
