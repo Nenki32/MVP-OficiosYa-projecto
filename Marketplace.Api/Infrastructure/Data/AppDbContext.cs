@@ -69,12 +69,20 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.NoAction);
             e.Property(t => t.Estado).HasMaxLength(20);
             e.Property(t => t.TipoPago).HasMaxLength(20);
+
+            // Coordenadas: sin esto EF mapea decimal(18,2) por defecto y redondea
+            // la posicion a 2 decimales (~1 km) antes de llegar a SQL Server.
+            e.Property(t => t.LatitudDestino).HasPrecision(10, 7);
+            e.Property(t => t.LongitudDestino).HasPrecision(10, 7);
+            e.Property(t => t.LatitudInicio).HasPrecision(10, 7);
+            e.Property(t => t.LongitudInicio).HasPrecision(10, 7);
+
             e.ToTable(t => t.HasCheckConstraint("CK_Trabajos_estado",
                 "estado IN ('pendiente', 'aceptado', 'viajando', 'en_progreso', 'completado', 'cancelado')"));
             e.ToTable(t => t.HasCheckConstraint("CK_Trabajos_tipo_pago",
                 "tipo_pago IN ('efectivo', 'tarjeta', 'transferencia')"));
             e.HasIndex(t => new { t.Estado, t.LatitudDestino, t.LongitudDestino })
-                .HasFilter("[estado] IN ('pendiente', 'aceptado')");
+                .HasFilter("estado IN ('pendiente', 'aceptado')");
             e.HasIndex(t => new { t.ClienteId, t.Estado });
             e.HasIndex(t => new { t.ProfesionalId, t.Estado });
         });
@@ -88,6 +96,8 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
             e.Property(p => p.TipoPago).HasMaxLength(20);
             e.Property(p => p.Estado).HasMaxLength(20);
+            e.Property(p => p.MontoTotal).HasPrecision(10, 2);
+            e.Property(p => p.Comision).HasPrecision(10, 2);
             e.ToTable(t => t.HasCheckConstraint("CK_Pagos_tipo_pago",
                 "tipo_pago IN ('efectivo', 'tarjeta', 'transferencia')"));
             e.ToTable(t => t.HasCheckConstraint("CK_Pagos_estado",
@@ -106,6 +116,8 @@ public class AppDbContext : DbContext
                 .HasForeignKey(cc => cc.TrabajoId)
                 .OnDelete(DeleteBehavior.NoAction);
             e.Property(cc => cc.Tipo).HasMaxLength(30);
+            e.Property(cc => cc.Monto).HasPrecision(10, 2);
+            e.Property(cc => cc.SaldoPosterior).HasPrecision(10, 2);
             e.ToTable(t => t.HasCheckConstraint("CK_CC_tipo",
                 "tipo IN ('comision_adeudada', 'pago_deuda', 'ajuste_manual')"));
             e.HasIndex(cc => new { cc.ProfesionalId, cc.CreadoEn })
@@ -123,6 +135,7 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(p => p.ProfesionalId)
                 .OnDelete(DeleteBehavior.NoAction);
+            e.Property(p => p.Presupuesto).HasPrecision(10, 2);
             e.HasIndex(p => new { p.TrabajoId, p.ProfesionalId }).IsUnique();
         });
 
@@ -146,19 +159,24 @@ public class AppDbContext : DbContext
         SeedData(modelBuilder);
     }
 
+    // Fecha fija: HasData exige valores deterministas. Con DateTime.UtcNow, EF ve un
+    // modelo distinto en cada ejecucion y genera una migracion nueva cada vez.
+    private static readonly DateTime SeedFecha =
+        new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
     private static void SeedData(ModelBuilder mb)
     {
         mb.Entity<Servicio>().HasData(
-            new { Id = 1, Nombre = "Gasista",        Descripcion = "Instalacion, reparacion y mantenimiento de artefactos a gas", CreadoEn = DateTime.UtcNow },
-            new { Id = 2, Nombre = "Electricista",   Descripcion = "Instalaciones electricas, reparaciones y certificaciones",     CreadoEn = DateTime.UtcNow },
-            new { Id = 3, Nombre = "Plomero",         Descripcion = "Reparacion de canerias, termotanques y sanitarios",          CreadoEn = DateTime.UtcNow },
-            new { Id = 4, Nombre = "Pintor",          Descripcion = "Pintura interior y exterior, enduido y revestimientos",     CreadoEn = DateTime.UtcNow },
-            new { Id = 5, Nombre = "Cerrajero",       Descripcion = "Apertura de puertas, cambio de cerraduras y copias",       CreadoEn = DateTime.UtcNow },
-            new { Id = 6, Nombre = "Carpintero",      Descripcion = "Muebles a medida, reparacion de aberturas y colocacion",   CreadoEn = DateTime.UtcNow },
-            new { Id = 7, Nombre = "Albanil",         Descripcion = "Arreglos de paredes, contrapisos y revoques",              CreadoEn = DateTime.UtcNow },
-            new { Id = 8, Nombre = "Techista",        Descripcion = "Reparacion de techos, filtraciones y membranas",           CreadoEn = DateTime.UtcNow },
-            new { Id = 9, Nombre = "Jardinero",       Descripcion = "Corte de cesped, poda, diseno de jardines",               CreadoEn = DateTime.UtcNow },
-            new { Id = 10, Nombre = "Servicio Tecnico", Descripcion = "Reparacion de electrodomesticos y equipos electronicos", CreadoEn = DateTime.UtcNow }
+            new { Id = 1, Nombre = "Gasista",        Descripcion = "Instalacion, reparacion y mantenimiento de artefactos a gas", CreadoEn = SeedFecha },
+            new { Id = 2, Nombre = "Electricista",   Descripcion = "Instalaciones electricas, reparaciones y certificaciones",     CreadoEn = SeedFecha },
+            new { Id = 3, Nombre = "Plomero",         Descripcion = "Reparacion de canerias, termotanques y sanitarios",          CreadoEn = SeedFecha },
+            new { Id = 4, Nombre = "Pintor",          Descripcion = "Pintura interior y exterior, enduido y revestimientos",     CreadoEn = SeedFecha },
+            new { Id = 5, Nombre = "Cerrajero",       Descripcion = "Apertura de puertas, cambio de cerraduras y copias",       CreadoEn = SeedFecha },
+            new { Id = 6, Nombre = "Carpintero",      Descripcion = "Muebles a medida, reparacion de aberturas y colocacion",   CreadoEn = SeedFecha },
+            new { Id = 7, Nombre = "Albanil",         Descripcion = "Arreglos de paredes, contrapisos y revoques",              CreadoEn = SeedFecha },
+            new { Id = 8, Nombre = "Techista",        Descripcion = "Reparacion de techos, filtraciones y membranas",           CreadoEn = SeedFecha },
+            new { Id = 9, Nombre = "Jardinero",       Descripcion = "Corte de cesped, poda, diseno de jardines",               CreadoEn = SeedFecha },
+            new { Id = 10, Nombre = "Servicio Tecnico", Descripcion = "Reparacion de electrodomesticos y equipos electronicos", CreadoEn = SeedFecha }
         );
     }
 }

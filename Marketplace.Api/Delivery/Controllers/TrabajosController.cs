@@ -31,30 +31,16 @@ public class TrabajosController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Solicitar([FromBody] CrearTrabajoRequest request)
     {
-        try
-        {
-            if (UserRol != "cliente") return Forbid();
-            var response = await _service.CrearAsync(UserId, request);
-            return CreatedAtAction(nameof(Obtener), new { id = response.Id }, response);
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Error interno del servidor" });
-        }
+        if (UserRol != "cliente") return Forbid();
+        var response = await _service.CrearAsync(UserId, request);
+        return CreatedAtAction(nameof(Obtener), new { id = response.Id }, response);
     }
 
     [HttpGet]
     public async Task<IActionResult> Listar()
     {
-        try
-        {
-            var trabajos = await _service.ListarAsync(UserId, UserRol);
-            return Ok(trabajos);
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Error interno del servidor" });
-        }
+        var trabajos = await _service.ListarAsync(UserId, UserRol);
+        return Ok(trabajos);
     }
 
     [HttpGet("{id}")]
@@ -68,10 +54,6 @@ public class TrabajosController : ControllerBase
         catch (KeyNotFoundException)
         {
             return NotFound(new { error = "Trabajo no encontrado." });
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Error interno del servidor" });
         }
     }
 
@@ -95,10 +77,6 @@ public class TrabajosController : ControllerBase
         {
             return Forbid();
         }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Error interno del servidor" });
-        }
     }
 
     [HttpPatch("{id}/ubicacion")]
@@ -112,10 +90,6 @@ public class TrabajosController : ControllerBase
         catch (KeyNotFoundException)
         {
             return NotFound(new { error = "Trabajo no encontrado." });
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Error interno del servidor" });
         }
     }
 
@@ -131,101 +105,76 @@ public class TrabajosController : ControllerBase
         {
             return NotFound(new { error = "Trabajo no encontrado." });
         }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Error interno del servidor" });
-        }
     }
 
     [HttpPost("{id}/postularse")]
     public async Task<IActionResult> Postularse(int id, [FromBody] PostularseRequest? request)
     {
-        try
+        if (UserRol != "profesional") return Forbid();
+
+        var trabajo = await _db.Trabajos.FindAsync(id);
+        if (trabajo == null)
+            return NotFound(new { error = "Trabajo no encontrado." });
+        if (trabajo.Estado != "pendiente")
+            return BadRequest(new { error = "Este trabajo ya no acepta postulaciones." });
+        if (trabajo.ClienteId == UserId)
+            return BadRequest(new { error = "No podes postularte a tu propio trabajo." });
+
+        var yaPostulado = await _postulacionRepo.ExistsAsync(id, UserId);
+        if (yaPostulado)
+            return Conflict(new { error = "Ya te postulaste a este trabajo." });
+
+        await _postulacionRepo.AddAsync(new Postulacion
         {
-            if (UserRol != "profesional") return Forbid();
+            TrabajoId = id,
+            ProfesionalId = UserId,
+            Presupuesto = request?.Presupuesto
+        });
 
-            var trabajo = await _db.Trabajos.FindAsync(id);
-            if (trabajo == null)
-                return NotFound(new { error = "Trabajo no encontrado." });
-            if (trabajo.Estado != "pendiente")
-                return BadRequest(new { error = "Este trabajo ya no acepta postulaciones." });
-            if (trabajo.ClienteId == UserId)
-                return BadRequest(new { error = "No podes postularte a tu propio trabajo." });
-
-            var yaPostulado = await _postulacionRepo.ExistsAsync(id, UserId);
-            if (yaPostulado)
-                return Conflict(new { error = "Ya te postulaste a este trabajo." });
-
-            await _postulacionRepo.AddAsync(new Postulacion
-            {
-                TrabajoId = id,
-                ProfesionalId = UserId,
-                Presupuesto = request?.Presupuesto
-            });
-
-            return Ok(new { message = "Te postulaste correctamente." });
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Error interno del servidor" });
-        }
+        return Ok(new { message = "Te postulaste correctamente." });
     }
 
     [HttpGet("{id}/postulaciones")]
     public async Task<IActionResult> ListarPostulaciones(int id)
     {
-        try
-        {
-            var trabajo = await _db.Trabajos.FindAsync(id);
-            if (trabajo == null)
-                return NotFound(new { error = "Trabajo no encontrado." });
-            if (trabajo.ClienteId != UserId && UserRol != "admin")
-                return Forbid();
+        var trabajo = await _db.Trabajos.FindAsync(id);
+        if (trabajo == null)
+            return NotFound(new { error = "Trabajo no encontrado." });
+        if (trabajo.ClienteId != UserId && UserRol != "admin")
+            return Forbid();
 
-            var postulaciones = await _postulacionRepo.GetByTrabajoAsync(id);
-            var dtos = postulaciones.Select(p => new PostulacionDto
-            {
-                Id = p.Id,
-                ProfesionalId = p.ProfesionalId,
-                ProfesionalNombre = p.Profesional.Nombre,
-                NivelProfesional = p.Profesional.NivelProfesional,
-                Presupuesto = p.Presupuesto,
-                CreadoEn = p.CreadoEn
-            }).ToList();
-
-            return Ok(dtos);
-        }
-        catch (Exception)
+        var postulaciones = await _postulacionRepo.GetByTrabajoAsync(id);
+        var dtos = postulaciones.Select(p => new PostulacionDto
         {
-            return StatusCode(500, new { error = "Error interno del servidor" });
-        }
+            Id = p.Id,
+            ProfesionalId = p.ProfesionalId,
+            ProfesionalNombre = p.Profesional.Nombre,
+            NivelProfesional = p.Profesional.NivelProfesional,
+            Presupuesto = p.Presupuesto,
+            CreadoEn = p.CreadoEn
+        }).ToList();
+
+        return Ok(dtos);
     }
 
     [HttpPost("{id}/asignar/{profesionalId}")]
     public async Task<IActionResult> Asignar(int id, int profesionalId)
     {
-        try
-        {
-            if (UserRol != "cliente") return Forbid();
+        if (UserRol != "cliente") return Forbid();
 
-            var trabajo = await _db.Trabajos.FindAsync(id);
-            if (trabajo == null)
-                return NotFound(new { error = "Trabajo no encontrado." });
-            if (trabajo.ClienteId != UserId) return Forbid();
-            if (trabajo.Estado != "pendiente")
-                return BadRequest(new { error = "El trabajo ya tiene un profesional asignado." });
+        var trabajo = await _db.Trabajos.FindAsync(id);
+        if (trabajo == null)
+            return NotFound(new { error = "Trabajo no encontrado." });
+        if (trabajo.ClienteId != UserId) return Forbid();
+        if (trabajo.Estado != "pendiente")
+            return BadRequest(new { error = "El trabajo ya tiene un profesional asignado." });
 
-            var postulado = await _postulacionRepo.ExistsAsync(id, profesionalId);
-            if (!postulado)
-                return BadRequest(new { error = "Ese profesional no se postulo a este trabajo." });
+        var postulado = await _postulacionRepo.ExistsAsync(id, profesionalId);
+        if (!postulado)
+            return BadRequest(new { error = "Ese profesional no se postulo a este trabajo." });
 
-            await _service.AsignarProfesionalAsync(id, profesionalId);
+        await _service.AsignarProfesionalAsync(id, profesionalId);
 
-            return Ok(new { message = "Profesional asignado correctamente." });
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Error interno del servidor" });
-        }
+        return Ok(new { message = "Profesional asignado correctamente." });
     }
 }

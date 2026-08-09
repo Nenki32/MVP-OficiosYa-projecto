@@ -20,29 +20,15 @@ public class CuentaCorrienteController : ControllerBase
     [HttpGet("saldo")]
     public async Task<IActionResult> Saldo()
     {
-        try
-        {
-            var saldo = await _service.ObtenerSaldoAsync(UserId);
-            return Ok(saldo);
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Error interno del servidor" });
-        }
+        var saldo = await _service.ObtenerSaldoAsync(UserId);
+        return Ok(saldo);
     }
 
     [HttpGet("movimientos")]
     public async Task<IActionResult> Movimientos()
     {
-        try
-        {
-            var movimientos = await _service.ObtenerMovimientosAsync(UserId);
-            return Ok(movimientos);
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Error interno del servidor" });
-        }
+        var movimientos = await _service.ObtenerMovimientosAsync(UserId);
+        return Ok(movimientos);
     }
 
     [HttpPost("pagar")]
@@ -56,10 +42,6 @@ public class CuentaCorrienteController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { error = ex.Message });
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Error interno del servidor" });
         }
     }
 }

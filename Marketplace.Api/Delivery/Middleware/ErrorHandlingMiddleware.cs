@@ -24,14 +24,14 @@ public class ErrorHandlingMiddleware
             _logger.LogError(ex, "Error de base de datos");
             context.Response.StatusCode = 500;
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsJsonAsync(new { error = "Error interno del servidor" });
+            await context.Response.WriteAsJsonAsync(new { error = ex.InnerException?.Message ?? ex.Message });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error no controlado");
             context.Response.StatusCode = 500;
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsJsonAsync(new { error = "Error interno del servidor" });
+            await context.Response.WriteAsJsonAsync(new { error = ex.Message });
         }
     }
 }

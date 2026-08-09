@@ -26,10 +26,6 @@ public class AuthController : ControllerBase
         {
             return Conflict(new { error = ex.Message });
         }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Error interno del servidor" });
-        }
     }
 
     [HttpPost("register/profesional")]
@@ -43,10 +39,6 @@ public class AuthController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return Conflict(new { error = ex.Message });
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Error interno del servidor" });
         }
     }
 
@@ -62,26 +54,15 @@ public class AuthController : ControllerBase
         {
             return Unauthorized(new { error = ex.Message });
         }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Error interno del servidor" });
-        }
     }
 
     [HttpPost("logout")]
     [Authorize]
     public async Task<IActionResult> Logout()
     {
-        try
-        {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null) return Unauthorized();
-            await _auth.LogoutAsync(int.Parse(userIdClaim));
-            return Ok(new { message = "Sesion cerrada" });
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Error interno del servidor" });
-        }
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null) return Unauthorized();
+        await _auth.LogoutAsync(int.Parse(userIdClaim));
+        return Ok(new { message = "Sesion cerrada" });
     }
 }
