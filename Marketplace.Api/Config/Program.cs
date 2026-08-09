@@ -185,6 +185,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c => c.ConfigObject.AdditionalItems["persistAuthorization"] = true);
 }
 
+// Chequeo de salud para la plataforma de hosting. No toca la base a proposito:
+// responde si el proceso esta vivo, que es lo unico que necesita saber quien
+// enruta el trafico. Sin autenticacion, porque lo consulta la infraestructura.
+app.MapGet("/health", () => Results.Ok(new
+{
+    estado = "ok",
+    servicio = "encoya-api",
+    hora = DateTime.UtcNow,
+})).AllowAnonymous();
+
 // Delivery middleware pipeline
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseCors();
