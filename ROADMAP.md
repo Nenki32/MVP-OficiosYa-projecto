@@ -91,7 +91,25 @@ Objetivo: poder recorrer el flujo completo como cliente y como profesional.
 
 ---
 
-## Bloque 2 — Supabase (~2 días)
+## Bloque 2 — Supabase ✅ (aplicado 2026-08-09, falta corrida manual)
+
+- [x] Proyecto Supabase creado (São Paulo, PostgreSQL 17.6)
+- [x] Extensiones `postgis` y `btree_gist` creadas
+- [x] Proveedor EF: SqlServer → Npgsql + NetTopologySuite, `EnableRetryOnFailure(3)`
+- [x] Migración `InitialCreate` generada y aplicada: 8 tablas, 10 servicios sembrados
+- [x] Coordenadas verificadas en la base como `numeric(10,7)`
+- [x] Usuarios de prueba recreados (ids 2–5; admin es 1) — todos reciben token
+- [ ] **Corrida manual del flujo completo sobre Postgres**
+- [ ] PR `feature/migracion-supabase` → `master` (habrá conflicto en README.txt:
+      master lo modificó, nosotros lo borramos — aceptar el borrado)
+- [ ] Borrar `develop` una vez mergeado (es la base de la rama de feature)
+- [ ] Refresh tokens (subido desde el Bloque 7: 24 h no sirve para mobile)
+
+> **Trampa del `.env`:** DotNetEnv rompe si hay comillas dentro del valor. La
+> connection string va con comillas simples envolviendo **todo** el valor y la
+> password **sin** comillas. Documentado en `.env.example`.
+
+### Notas de la migración original
 
 Objetivo: Postgres + PostGIS andando, con el backend .NET apuntando ahí.
 
@@ -205,6 +223,13 @@ Los usuarios son personas solas en su casa esperando a un desconocido. Esto impo
 
 - [ ] Dos DTOs distintos: `TrabajoPublicoDto` (difuso) y `TrabajoAsignadoDto` (exacto)
 - [ ] Misma lógica para el teléfono del cliente
+- [ ] **Postulaciones visibles entre competidores** — detectado 2026-08-09.
+      `TrabajoDetalleDto.Postulaciones` va completo a cualquiera que consulte el trabajo,
+      así que un profesional ve los presupuestos de los demás y puede ofertar apenas
+      por debajo. Rompe la competencia, que es el sentido del modo postulaciones.
+      El profesional debe recibir **solo la suya**; el cliente, la lista completa.
+      (Hoy la UI usa ese array para saber si ya te postulaste: al restringirlo hay que
+      exponer un campo `yaMePostule` o un endpoint propio.)
 - [ ] **Verificación de identidad**: hoy `dni` y `numero_matricula` no se validan contra
       nada — cualquiera se declara "premium matriculado". Es el agujero central de una
       app cuyo diferencial es la confianza. Mínimo: revisión manual en el alta.
@@ -335,6 +360,58 @@ Es un argumento más para la migración del Bloque 2.
 > **Datos personales:** guardar refresh tokens de Google y mandar mensajes a
 > teléfonos implica tratar datos personales. En Argentina aplica la Ley 25.326.
 > Revisar antes de salir a producción, no después.
+
+## Bloque 4.5 — Modelo de cobros y comisiones (decidir antes de tener usuarios reales)
+
+Hoy la plataforma **no procesa ningún pago**: `tipo_pago` es solo una etiqueta. Eso
+define todo lo demás.
+
+### El problema
+
+- **Efectivo:** la plata nunca pasa por la app → el 15 % es deuda genuina del
+  profesional. Funciona hoy: asiento negativo + `Estado = Deudor`. ✅
+- **Tarjeta / transferencia:** `CompletarAsync` tiene todo el bloque del ledger dentro
+  de `if (tipoPago == "efectivo")`. Se crea el registro en `Pagos` con la comisión
+  calculada, pero **nadie la debe ni nadie la cobra**. Número anotado sin efecto contable. ❌
+- **`PagarDeudaAsync` no cobra nada:** registra `pago_deuda` y limpia el estado Deudor
+  sin transferencia real detrás. Endpoint a confianza. ❌
+
+### Modelo elegido: híbrido con compensación
+
+- **Efectivo** → deuda (como hoy)
+- **Tarjeta vía la app** → retención automática de la comisión, sin deuda; el
+  profesional acumula **saldo a favor** pendiente de liquidación
+- **Compensación:** la deuda de efectivo se descuenta de las liquidaciones de tarjeta.
+  Si debe $3.000 y cobra $20.000 con tarjeta, se le liquidan $14.000, no $17.000.
+  Resuelve la cobranza sin perseguir a nadie: mientras siga trabajando con tarjeta,
+  la deuda se licúa sola.
+
+### Tareas
+
+- [ ] Integrar **Mercado Pago** en modo marketplace (retiene comisión de aplicación y
+      liquida el resto al vendedor — es exactamente este caso)
+- [ ] Ampliar el ledger: tipos `comision_retenida`, `liquidacion_pendiente`, `liquidacion_pagada`
+- [ ] `CompletarAsync`: rama de tarjeta que acredite al profesional en vez de no hacer nada
+- [ ] Compensación automática de deuda contra liquidaciones
+- [ ] `PagarDeudaAsync`: exigir un pago real, no confianza
+- [ ] Distinguir **quién recibe el dinero primero**, que es lo único que importa:
+      | Adónde va | Comisión |
+      |---|---|
+      | Alias/cuenta **del profesional** (efectivo, transferencia directa, Posnet propio) | Deuda |
+      | Cuenta **de la plataforma** (checkout de MP) | Retención automática |
+      El `tipo_pago` **no debe elegirlo el profesional a mano** — si lo tipea él, va a
+      marcar "efectivo" siempre. Debe surgir de cómo se cobró realmente.
+
+> **Sin Posnet.** El checkout de Mercado Pago cobra desde el celular del cliente
+> (tarjeta, saldo o transferencia), sin hardware. El profesional necesita una cuenta
+> de Mercado Pago, no una terminal.
+>
+> **El modo marketplace divide el pago en el momento**, así que la plataforma nunca
+> custodia plata ajena: el profesional conecta su cuenta una vez y cada cobro se
+> reparte solo. Reduce mucho la carga regulatoria frente a cobrar y liquidar vos.
+
+> **Ojo:** cobrarle al cliente y liquidarle al profesional significa manejar plata de
+> terceros. Tiene implicancias fiscales y regulatorias. Consultar antes de operar.
 
 ## Bloque 5 — Tiempo real (~3 días)
 

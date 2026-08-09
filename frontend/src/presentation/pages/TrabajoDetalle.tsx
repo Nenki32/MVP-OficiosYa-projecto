@@ -34,7 +34,9 @@ export default function TrabajoDetalle() {
   const navigate = useNavigate()
   const [trabajo, setTrabajo] = useState<TrabajoDetalle | null>(null)
   const [monto, setMonto] = useState('')
+  const [presupuesto, setPresupuesto] = useState('')
   const [error, setError] = useState('')
+  const [aviso, setAviso] = useState('')
 
   const cargar = () =>
     api.get<TrabajoDetalle>(`/trabajos/${id}`).then(setTrabajo)
@@ -51,8 +53,13 @@ export default function TrabajoDetalle() {
   }
 
   const postularse = async () => {
+    setError(''); setAviso('')
     try {
-      await api.post(`/trabajos/${id}/postularse`, {})
+      await api.post(`/trabajos/${id}/postularse`, {
+        presupuesto: presupuesto ? parseFloat(presupuesto) : null
+      })
+      setPresupuesto('')
+      setAviso('Te postulaste. El cliente va a ver tu propuesta.')
       cargar()
     } catch (err: any) {
       setError(err.message)
@@ -86,6 +93,8 @@ export default function TrabajoDetalle() {
 
   const esCliente = user?.id === trabajo.clienteId
   const esProfesionalAsignado = user?.id === trabajo.profesionalId
+  const miPostulacion = trabajo.postulaciones.find(p => p.profesionalId === user?.id)
+  const yaPostulado = miPostulacion !== undefined
 
   const acciones: Record<string, string[]> = {
     pendiente: esProfesionalAsignado ? ['cancelado'] : esCliente ? ['cancelado'] : [],
@@ -115,12 +124,33 @@ export default function TrabajoDetalle() {
           </div>
 
           {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+          {aviso && <p className="text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2 text-sm mb-4">{aviso}</p>}
 
           {user?.rol === 'profesional' && trabajo.estado === 'pendiente' && (
-            <button onClick={postularse}
-              className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 mb-4 cursor-pointer">
-              Postularme
-            </button>
+            yaPostulado ? (
+              <div className="bg-green-50 border border-green-200 rounded p-3 mb-4">
+                <p className="text-sm font-medium text-green-800">Ya te postulaste a este trabajo</p>
+                <p className="text-xs text-green-700 mt-1">
+                  {miPostulacion?.presupuesto
+                    ? `Tu presupuesto: $${miPostulacion.presupuesto}`
+                    : 'No indicaste presupuesto'}
+                  {' · '}Esperando que el cliente decida.
+                </p>
+              </div>
+            ) : (
+              <div className="border rounded p-3 mb-4">
+                <label className="block text-sm font-medium mb-2">Postularme a este trabajo</label>
+                <div className="flex gap-2">
+                  <input type="number" step="0.01" min="0.01" placeholder="Presupuesto $ (opcional)"
+                    value={presupuesto} onChange={e => setPresupuesto(e.target.value)}
+                    className="border rounded px-3 py-2 flex-1 text-sm" />
+                  <button onClick={postularse}
+                    className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 cursor-pointer">
+                    Postularme
+                  </button>
+                </div>
+              </div>
+            )
           )}
 
           <div className="flex flex-wrap gap-2 mb-4">

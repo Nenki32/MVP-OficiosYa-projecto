@@ -157,6 +157,15 @@ DB_CONNECTION=Host=aws-0-<region>.pooler.supabase.com;Port=5432;Database=postgre
 dotnet ef database update --project Marketplace.Api
 ```
 
+> **El esquema lo maneja EF Core, no el CLI de Supabase.** El registro de migraciones
+> vive en la tabla `__EFMigrationsHistory`, por eso el dashboard de Supabase muestra
+> su sección de migraciones vacía: es lo esperado.
+>
+> **No modifiques tablas a mano desde el SQL Editor.** El snapshot de EF quedaría
+> desincronizado y la próxima migración fallaría o intentaría deshacer el cambio.
+> Todo cambio de esquema pasa por `dotnet ef migrations add`. Las extensiones
+> (`postgis`, `btree_gist`) son la excepción: viven fuera del modelo.
+
 ### 4. Backend
 
 ```bash
