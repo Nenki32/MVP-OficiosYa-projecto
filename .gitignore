@@ -27,5 +27,12 @@ Thumbs.db
 *.mdf
 
 # Secrets
+# Cualquier .env queda fuera (.env, .env.produccion, .env.local...),
+# salvo el ejemplo, que no lleva valores reales.
 .env
+.env.*
+!.env.example
 appsettings.Development.json
+
+# Expo
+.expo/

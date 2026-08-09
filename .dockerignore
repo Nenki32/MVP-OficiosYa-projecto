@@ -1,0 +1,21 @@
+# Todo lo que no hace falta para compilar la API. Reduce el tamano del
+# contexto que se envia al daemon de Docker y evita filtrar secretos.
+
+**/.git
+**/.vs
+**/.github
+**/bin
+**/obj
+**/node_modules
+**/dist
+
+# Secretos: nunca deben entrar a la imagen. La configuracion llega por
+# variables de entorno de la plataforma.
+**/.env
+**/appsettings.Development.json
+
+# Partes del repo que no son la API
+frontend/
+mobile/
+database/
+*.md

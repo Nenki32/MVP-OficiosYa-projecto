@@ -422,7 +422,41 @@ define todo lo demás.
 
 ---
 
-## Bloque 6 — App mobile con Expo (~3-4 semanas)
+## Bloque 6 — App mobile con Expo (~3-4 semanas) 🚧 EN CURSO
+
+### Hecho (2026-08-09)
+
+- [x] Proyecto Expo **SDK 54** en `mobile/` (SDK 57 no lo soporta Expo Go de Play Store)
+- [x] Navegación con expo-router, tabs según rol
+- [x] Login funcionando en dispositivo real (Moto E32 vía Expo Go)
+- [x] Token en SecureStore (Keychain/Keystore), no en almacenamiento plano
+- [x] Sistema de diseño centralizado en `src/theme.ts`
+- [x] Listado de trabajos leyendo de la API
+- [x] Perfil con cierre de sesión
+- [x] Backend con perfil `mobile (LAN)` escuchando en `0.0.0.0`
+
+**Cadena verificada:** Supabase → API .NET → WiFi → celular.
+
+### Notas de entorno
+
+- La app apunta a `http://192.168.1.4:5100/api` (`app.json` → `expo.extra.apiUrl`).
+  **Si cambia la IP de la PC hay que actualizarla ahí.**
+- `mobile/.npmrc` tiene `legacy-peer-deps=true`: sin eso `expo install` falla.
+- Nunca correr comandos de Expo con el directorio de trabajo en `frontend/`:
+  instala `expo` donde no corresponde y reformatea `tsconfig.json`.
+
+### Pendiente
+
+- [ ] Detalle del trabajo (hoy la lista no es interactiva) — es donde viven todas
+      las acciones: postularse, cambiar estado, completar
+- [ ] Crear solicitud (cliente)
+- [ ] **Ficha del profesional** — la pantalla más importante y la que no existe en
+      ninguna referencia: matrícula y reseñas verificadas arriba de todo
+- [ ] Mi saldo / movimientos
+- [ ] Development build con EAS (Expo Go no alcanza para mapa ni push)
+- [ ] Mapa de cercanía (depende del Bloque 3)
+
+### Stack y herramientas
 
 **Sin Android Studio, todo desde VS Code:**
 
