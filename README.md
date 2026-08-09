@@ -248,11 +248,10 @@ módulo de pagos si el volumen lo justifica.
 
 | Rama | Propósito |
 |---|---|
-| `main` | Producción — solo código estable |
-| `develop` | Integración de features |
+| `master` | Producción — rama por defecto, solo código estable |
 | `feature/*` | Una rama por tarea |
 
-Los merges a `main` se hacen vía Pull Request.
+Los merges a `master` se hacen vía Pull Request.
 
 ---
 
