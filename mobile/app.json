@@ -24,7 +24,7 @@
     },
     "plugins": [
       "expo-router",
-      "expo-status-bar"
+      "expo-font"
     ],
     "extra": {
       "apiUrl": "http://192.168.1.4:5100/api"
