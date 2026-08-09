@@ -29,8 +29,14 @@ var connString = builder.Configuration.GetConnectionString("DefaultConnection")!
 
 // Infrastructure
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(connString)
-           .UseSnakeCaseNamingConvention());
+    options.UseNpgsql(connString, npgsql =>
+    {
+        npgsql.UseNetTopologySuite();          // tipos geograficos para el Bloque 3
+        npgsql.EnableRetryOnFailure(3);        // Supabase es remoto: reintenta fallos transitorios
+    })
+    .UseSnakeCaseNamingConvention());
+
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Repositories
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
@@ -102,13 +108,28 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+// CORS: abierto solo en desarrollo. En produccion se restringe a los origenes
+// declarados en Cors:AllowedOrigins (separados por coma en la variable CORS_ORIGINS).
+var corsOrigins = (Env.GetString("CORS_ORIGINS") ?? "")
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+        else
+        {
+            policy.WithOrigins(corsOrigins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
     });
 });
 

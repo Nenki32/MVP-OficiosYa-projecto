@@ -35,7 +35,7 @@ public class AuthUseCase : IAuthService
 
         await _usuarioRepo.AddAsync(usuario);
 
-        return ToAuthResponse(usuario, null);
+        return ToAuthResponse(usuario, _jwt.GenerateToken(BuildClaims(usuario)));
     }
 
     public async Task<AuthResponse> RegisterProfesionalAsync(RegisterProfesionalRequest request)
@@ -59,7 +59,7 @@ public class AuthUseCase : IAuthService
 
         await _usuarioRepo.AddAsync(usuario);
 
-        return ToAuthResponse(usuario, null);
+        return ToAuthResponse(usuario, _jwt.GenerateToken(BuildClaims(usuario)));
     }
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
@@ -70,23 +70,17 @@ public class AuthUseCase : IAuthService
         if (!_passwordHasher.Verify(request.Password, usuario.PasswordHash))
             throw new UnauthorizedAccessException("Credenciales invalidas.");
 
-        usuario.Estado = (int)EstadoUsuario.Activo;
-        usuario.ActualizadoEn = DateTime.UtcNow;
-        await _usuarioRepo.UpdateAsync(usuario);
-
-        var token = usuario.Rol == "admin" ? _jwt.GenerateToken(BuildClaims(usuario)) : null;
-        return ToAuthResponse(usuario, token);
+        // El login no toca Estado: esa columna refleja la situacion comercial
+        // (ver EstadoUsuario.Deudor, que marca TrabajoUseCase al completar un trabajo
+        // en efectivo). Escribir Activo aca borraba la deuda en cada ingreso.
+        return ToAuthResponse(usuario, _jwt.GenerateToken(BuildClaims(usuario)));
     }
 
-    public async Task LogoutAsync(int userId)
+    public Task LogoutAsync(int userId)
     {
-        var usuario = await _usuarioRepo.GetByIdAsync(userId);
-        if (usuario != null)
-        {
-            usuario.Estado = (int)EstadoUsuario.NoActivo;
-            usuario.ActualizadoEn = DateTime.UtcNow;
-            await _usuarioRepo.UpdateAsync(usuario);
-        }
+        // Con JWT stateless el logout es del lado del cliente: descarta el token.
+        // No hay estado de sesion que limpiar en la base.
+        return Task.CompletedTask;
     }
 
     private static List<Claim> BuildClaims(Usuario usuario) =>

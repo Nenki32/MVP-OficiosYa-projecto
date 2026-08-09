@@ -6,21 +6,26 @@ namespace Marketplace.Api.Core.UseCases;
 
 public class TrabajoUseCase : ITrabajoService
 {
+    private const decimal ComisionPorcentaje = 0.15m;
+
     private readonly ITrabajoRepository _trabajoRepo;
     private readonly IUsuarioRepository _usuarioRepo;
     private readonly ICuentaCorrienteRepository _ccRepo;
     private readonly IPostulacionRepository _postulacionRepo;
+    private readonly IUnitOfWork _uow;
 
     public TrabajoUseCase(
         ITrabajoRepository trabajoRepo,
         IUsuarioRepository usuarioRepo,
         ICuentaCorrienteRepository ccRepo,
-        IPostulacionRepository postulacionRepo)
+        IPostulacionRepository postulacionRepo,
+        IUnitOfWork uow)
     {
         _trabajoRepo = trabajoRepo;
         _usuarioRepo = usuarioRepo;
         _ccRepo = ccRepo;
         _postulacionRepo = postulacionRepo;
+        _uow = uow;
     }
 
     public async Task<TrabajoDetalleDto> CrearAsync(int clienteId, CrearTrabajoRequest request)
@@ -142,49 +147,55 @@ public class TrabajoUseCase : ITrabajoService
         if (trabajo.Estado != "en_progreso")
             throw new InvalidOperationException("El trabajo debe estar en_progreso para completarse.");
 
-        trabajo.Estado = "completado";
-        trabajo.TipoPago = request.TipoPago;
-        trabajo.ActualizadoEn = DateTime.UtcNow;
+        var comision = request.MontoTotal * ComisionPorcentaje;
 
-        var comision = request.MontoTotal * 0.15m;
-
-        if (request.TipoPago == "efectivo")
+        // Todo lo que sigue escribe en CuentaCorriente, Usuarios, Trabajos y Pagos.
+        // Va en una sola transaccion: sin esto, un fallo a mitad de camino dejaba
+        // una comision adeudada sin el trabajo completado que la justifica.
+        await _uow.ExecuteInTransactionAsync(async () =>
         {
-            var saldoActual = await _ccRepo.GetSaldoAsync(usuarioId);
-            var nuevoSaldo = saldoActual - comision;
+            trabajo.Estado = "completado";
+            trabajo.TipoPago = request.TipoPago;
+            trabajo.ActualizadoEn = DateTime.UtcNow;
 
-            await _ccRepo.AddAsync(new CuentaCorriente
+            if (request.TipoPago == "efectivo")
             {
-                ProfesionalId = usuarioId,
-                TrabajoId = trabajo.Id,
-                Tipo = "comision_adeudada",
-                Monto = -comision,
-                SaldoPosterior = nuevoSaldo,
-                Referencia = $"Comision 15% - Trabajo #{trabajo.Id}"
-            });
+                var saldoActual = await _ccRepo.GetSaldoAsync(usuarioId);
+                var nuevoSaldo = saldoActual - comision;
 
-            if (nuevoSaldo < 0)
-            {
-                var profesional = await _usuarioRepo.GetByIdAsync(usuarioId);
-                if (profesional != null && profesional.Estado != (int)EstadoUsuario.Deudor)
+                await _ccRepo.AddAsync(new CuentaCorriente
                 {
-                    profesional.Estado = (int)EstadoUsuario.Deudor;
-                    profesional.ActualizadoEn = DateTime.UtcNow;
-                    await _usuarioRepo.UpdateAsync(profesional);
+                    ProfesionalId = usuarioId,
+                    TrabajoId = trabajo.Id,
+                    Tipo = "comision_adeudada",
+                    Monto = -comision,
+                    SaldoPosterior = nuevoSaldo,
+                    Referencia = $"Comision {ComisionPorcentaje:P0} - Trabajo #{trabajo.Id}"
+                });
+
+                if (nuevoSaldo < 0)
+                {
+                    var profesional = await _usuarioRepo.GetByIdAsync(usuarioId);
+                    if (profesional != null && profesional.Estado != (int)EstadoUsuario.Deudor)
+                    {
+                        profesional.Estado = (int)EstadoUsuario.Deudor;
+                        profesional.ActualizadoEn = DateTime.UtcNow;
+                        await _usuarioRepo.UpdateAsync(profesional);
+                    }
                 }
             }
-        }
 
-        trabajo.Pago = new Pago
-        {
-            TrabajoId = trabajo.Id,
-            MontoTotal = request.MontoTotal,
-            Comision = comision,
-            TipoPago = request.TipoPago,
-            Estado = "registrado"
-        };
+            trabajo.Pago = new Pago
+            {
+                TrabajoId = trabajo.Id,
+                MontoTotal = request.MontoTotal,
+                Comision = comision,
+                TipoPago = request.TipoPago,
+                Estado = "registrado"
+            };
 
-        await _trabajoRepo.UpdateAsync(trabajo);
+            await _trabajoRepo.UpdateAsync(trabajo);
+        });
 
         return await ObtenerAsync(id);
     }

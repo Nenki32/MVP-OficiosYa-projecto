@@ -4,15 +4,20 @@ namespace Marketplace.Api.Delivery.DTOs.Trabajos;
 
 public class CrearTrabajoRequest
 {
-    [Required]
+    // [Required] sobre un int no anulable no valida nada: siempre trae 0 por defecto.
+    [Range(1, int.MaxValue, ErrorMessage = "Debe indicar un servicio valido.")]
     public int ServicioId { get; set; }
 
     [MaxLength(1000)]
     public string? Descripcion { get; set; }
 
+    [AllowedValues("efectivo", "tarjeta", "transferencia")]
     public string TipoPago { get; set; } = "efectivo";
 
+    [Range(-90.0, 90.0, ErrorMessage = "La latitud debe estar entre -90 y 90.")]
     public decimal? LatitudDestino { get; set; }
+
+    [Range(-180.0, 180.0, ErrorMessage = "La longitud debe estar entre -180 y 180.")]
     public decimal? LongitudDestino { get; set; }
 
     [MaxLength(500)]
