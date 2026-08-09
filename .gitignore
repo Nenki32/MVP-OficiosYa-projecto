@@ -29,3 +29,6 @@ Thumbs.db
 # Secrets
 .env
 appsettings.Development.json
+
+# Expo
+.expo/
