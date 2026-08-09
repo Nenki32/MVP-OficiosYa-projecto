@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
@@ -11,9 +10,17 @@ import { colors, radius, spacing, typography } from '../theme'
 export function HomeCliente() {
   const { usuario } = useAuth()
   const router = useRouter()
-  const [rubro, setRubro] = useState<Servicio | null>(null)
 
   const primerNombre = usuario?.nombre?.split(' ')[0] ?? ''
+
+  // Elegir un rubro es, en si mismo, la accion: lleva directo al alta.
+  // El selector no recuerda nada (siempre recibe null), asi que al volver
+  // queda otra vez en su estado inicial.
+  const irASolicitar = (rubro: Servicio) =>
+    router.push({
+      pathname: '/solicitar',
+      params: { servicioId: String(rubro.id), servicioNombre: rubro.nombre },
+    })
 
   return (
     <Pantalla
@@ -31,23 +38,8 @@ export function HomeCliente() {
         </Text>
 
         <View style={s.selector}>
-          <SelectorRubro servicioSeleccionado={rubro} onSeleccionar={setRubro} />
+          <SelectorRubro servicioSeleccionado={null} onSeleccionar={irASolicitar} />
         </View>
-
-        <Pressable
-          disabled={!rubro}
-          onPress={() => router.push({
-            pathname: '/solicitar',
-            params: { servicioId: String(rubro!.id), servicioNombre: rubro!.nombre },
-          })}
-          style={({ pressed }) => [
-            s.continuar,
-            !rubro && s.continuarDeshabilitado,
-            pressed && rubro && s.continuarPresionado,
-          ]}
-        >
-          <Text style={s.continuarTexto}>Continuar</Text>
-        </Pressable>
 
         <View style={s.separador} />
 
@@ -81,17 +73,6 @@ const s = StyleSheet.create({
 
   contenido: { padding: spacing.lg, gap: spacing.sm, paddingBottom: spacing.xxl },
   selector: { marginTop: spacing.sm },
-
-  continuar: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.pill,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
-  continuarDeshabilitado: { backgroundColor: colors.textMuted, opacity: 0.5 },
-  continuarPresionado: { backgroundColor: colors.primaryDark },
-  continuarTexto: { color: colors.textOnPrimary, fontSize: 16, fontWeight: '700' },
 
   separador: {
     height: 1,
