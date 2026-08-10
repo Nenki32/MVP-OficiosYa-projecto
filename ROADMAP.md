@@ -5,6 +5,47 @@
 
 ---
 
+## Dónde retomar (última sesión: 2026-08-09)
+
+**La app mobile funciona en dispositivo real**, contra el backend local y
+Supabase. Login, inicio del cliente con selector de rubros, alta de petición,
+mis peticiones, listado del profesional y perfil.
+
+**Para levantar todo:**
+
+```bash
+# Terminal 1 — backend (0.0.0.0 para que lo alcance el celular)
+dotnet run --project Marketplace.Api --urls http://0.0.0.0:5100
+
+# Terminal 2 — app
+cd mobile; npx expo start
+```
+
+Escanear el QR con Expo Go. Usuarios: `juan@test.com` (cliente) y
+`carlos@test.com` (profesional), contraseña `Test1234!`.
+
+**Trampas que ya nos costaron tiempo:**
+
+- La IP de la PC está clavada en `mobile/app.json` → `expo.extra.apiUrl`.
+  Si cambia, hay que actualizarla.
+- **Cambiar `app.json` no se propaga con una recarga**: hay que reiniciar Metro
+  *y* cerrar Expo Go por completo desde recientes. Recargar sacudiendo no basta.
+- PowerShell no acepta `&&`; usar `;`.
+- `address already in use` casi siempre significa que ya está corriendo.
+
+**Render quedó pendiente a propósito.** Se desplegó y funcionó, pero el plan
+gratuito duerme el servicio y la primera carga tarda ~15 s. Se retoma al salir
+a producción, probablemente con el plan de USD 7 (sin suspensión y CPU dedicado,
+que además acelera el login: ~1 s del tiempo es BCrypt). Guía en
+[DESPLIEGUE.md](DESPLIEGUE.md), variables en `Marketplace.Api/.env.produccion`
+(no versionado — **no borrar ese archivo**).
+
+**Lo siguiente, a elección:** detalle del trabajo (hoy la lista no es
+interactiva y es donde viven todas las acciones), ficha del profesional
+(la pantalla del diferenciador), o la grilla de accesos rápidos estilo OSDE.
+
+---
+
 ## Dónde está el proyecto hoy
 
 **Funciona:** estructura Clean Architecture en .NET 9, EF Core, modelo de dominio completo
