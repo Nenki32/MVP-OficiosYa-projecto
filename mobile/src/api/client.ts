@@ -44,17 +44,23 @@ export class ApiError extends Error {
 const dormir = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 /**
- * El plan gratuito de Render apaga el servicio tras unos minutos sin uso.
- * Mientras despierta, su borde responde 404 con texto plano en vez de poner
+ * Los hostings gratuitos apagan el servicio tras unos minutos sin uso y,
+ * mientras despierta, su borde responde 404 con texto plano en vez de poner
  * la peticion en espera. Nuestra API siempre responde JSON, asi que un 404
  * que no es JSON significa "todavia no hay servidor", no "no existe".
+ *
+ * Solo aplica contra un backend remoto. En local no hay nada que despertar,
+ * y reintentar haria esperar 20 segundos ante un 404 legitimo.
  */
+const esRemoto = API_BASE.startsWith('https://')
+
 function esDespertando(res: Response) {
+  if (!esRemoto) return false
   const tipo = res.headers.get('content-type') ?? ''
   return res.status === 404 && !tipo.includes('json')
 }
 
-const REINTENTOS = 5
+const REINTENTOS = esRemoto ? 5 : 0
 const ESPERA_MS = 4000
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
