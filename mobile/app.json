@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "EncoYá",
-    "slug": "encoya",
-    "scheme": "encoya",
+    "name": "OficiosYa",
+    "slug": "oficiosya",
+    "scheme": "oficiosya",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

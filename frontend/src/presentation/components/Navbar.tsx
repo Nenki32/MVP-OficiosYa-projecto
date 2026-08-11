@@ -7,7 +7,7 @@ export default function Navbar() {
   return (
     <nav className="bg-white shadow-sm border-b">
       <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-        <Link to="/" className="font-bold text-lg text-blue-600">EncoYa</Link>
+        <Link to="/" className="font-bold text-lg text-blue-600">OficiosYa</Link>
 
         <div className="flex items-center gap-4 text-sm">
           {user?.rol === 'profesional' && (

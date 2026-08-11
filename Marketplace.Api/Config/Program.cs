@@ -163,7 +163,7 @@ using (var scope = app.Services.CreateScope())
 
     if (!await db.Usuarios.AnyAsync(u => u.Rol == "admin"))
     {
-        var adminEmail = builder.Configuration["Admin:Email"] ?? "admin@encoya.com";
+        var adminEmail = builder.Configuration["Admin:Email"] ?? "admin@oficiosya.com";
         var adminPass = builder.Configuration["Admin:Password"] ?? "Admin123!";
 
         db.Usuarios.Add(new Marketplace.Api.Core.Models.Usuario
@@ -191,7 +191,7 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/health", () => Results.Ok(new
 {
     estado = "ok",
-    servicio = "encoya-api",
+    servicio = "oficiosya-api",
     hora = DateTime.UtcNow,
 })).AllowAnonymous();
 
