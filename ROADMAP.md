@@ -305,7 +305,7 @@ Objetivo: poder recorrer el flujo completo como cliente y como profesional.
 
 | id | email | nombre | rol |
 |----|-------|--------|-----|
-| 1  | admin@encoya.com | Administrador | admin |
+| 1  | admin@oficiosya.com | Administrador | admin |
 | 9  | juan@test.com | Juan Perez | cliente |
 | 10 | maria@test.com | Maria Garcia | cliente |
 | 11 | carlos@test.com | Carlos Lopez | profesional standard |
@@ -346,7 +346,7 @@ Objetivo: Postgres + PostGIS andando, con el backend .NET apuntando ahí.
 1. Entrar a https://supabase.com → **Start your project**
 2. Registrarte **con GitHub** (ya tenés cuenta, es lo más rápido)
 3. **New project**:
-   - Name: `encoya-mvp`
+   - Name: `oficiosya-mvp`
    - Region: **South America (São Paulo)** — es la más cercana a Argentina, menos latencia
    - Database password: generá una fuerte y **guardala en tu gestor de contraseñas ahora mismo**.
      Supabase no te la muestra de nuevo y la vas a necesitar para la connection string.
@@ -702,7 +702,7 @@ define todo lo demás.
 **Sin Android Studio, todo desde VS Code:**
 
 ```bash
-npx create-expo-app@latest encoya-mobile
+npx create-expo-app@latest oficiosya-mobile
 ```
 
 - Probás en tu celular con **Expo Go** escaneando un QR — no necesitás emulador

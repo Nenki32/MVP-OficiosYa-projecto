@@ -10,8 +10,8 @@ import * as SecureStore from 'expo-secure-store'
  */
 const API_BASE = (Constants.expoConfig?.extra?.apiUrl as string) ?? ''
 
-const TOKEN_KEY = 'encoya.token'
-const USUARIO_KEY = 'encoya.usuario'
+const TOKEN_KEY = 'oficiosya.token'
+const USUARIO_KEY = 'oficiosya.usuario'
 
 export const tokenStorage = {
   get: () => SecureStore.getItemAsync(TOKEN_KEY),

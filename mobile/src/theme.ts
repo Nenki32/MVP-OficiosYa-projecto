@@ -1,5 +1,5 @@
 /**
- * Sistema de diseno de EncoYa.
+ * Sistema de diseno de OficiosYa.
  *
  * Todo color, espaciado y tamano de texto sale de aca. Ningun componente
  * define valores sueltos: si algo necesita un color nuevo, se agrega en este

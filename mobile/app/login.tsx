@@ -41,7 +41,7 @@ export default function Login() {
     >
       {/* Bloque de color superior */}
       <View style={[s.header, { paddingTop: insets.top + spacing.xl }]}>
-        <Text style={s.marca}>EncoYá</Text>
+        <Text style={s.marca}>OficiosYa</Text>
         <Text style={s.tagline}>Profesionales del hogar, cerca tuyo</Text>
       </View>
 

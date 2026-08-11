@@ -58,7 +58,7 @@ imagen (está en `.dockerignore`).
 ## 3. Verificar
 
 Cuando termine el despliegue, Render te da una URL del estilo
-`https://encoya-api.onrender.com`.
+`https://oficiosya-api.onrender.com`.
 
 ```
 https://<tu-servicio>.onrender.com/health
@@ -67,7 +67,7 @@ https://<tu-servicio>.onrender.com/health
 Tiene que responder:
 
 ```json
-{ "estado": "ok", "servicio": "encoya-api", "hora": "..." }
+{ "estado": "ok", "servicio": "oficiosya-api", "hora": "..." }
 ```
 
 Si falla, mirá los **Logs** en Render. El error más probable es una variable
