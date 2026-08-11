@@ -46,6 +46,105 @@ interactiva y es donde viven todas las acciones), ficha del profesional
 
 ---
 
+## Seguridad — estado y prioridades (revisado 2026-08-09)
+
+> Sección de referencia. Los hallazgos están **verificados en el código**, no
+> son sospechas. Ordenados por riesgo real, no por lo que reporte una herramienta.
+
+### ⛔ NO correr `npm audit fix --force` en `mobile/`
+
+Se evaluó y **rompe el proyecto**. Su plan de acción es:
+
+```
+Updating expo to 57.0.12          — SDK 57 NO lo soporta el Expo Go de las tiendas
+Updating react-native to 0.72.17  — DOWNGRADE desde 0.81.5
+change @react-native/virtualized-lists 0.81.5 -> 0.72.8
+```
+
+Deja paquetes internos mezclados entre 0.72 y 0.86, y vuelve a romper la
+compatibilidad con Expo Go que costó resolver. **Decisión tomada: se conviven
+con las vulnerabilidades de build.** Ver el detalle más abajo.
+
+Para actualizar dentro de lo que el SDK permite: `npx expo install --fix`.
+
+---
+
+### 🔴 Alto — explotable hoy, en código propio
+
+**1. Fuga de direcciones de clientes.**
+`GetByProfesionalAsync` ([TrabajoRepository.cs:42](Marketplace.Api/Infrastructure/Data/Repositories/TrabajoRepository.cs:42))
+devuelve todos los trabajos sin asignar, y `TrabajoDto` incluye
+`direccionDestino` más las coordenadas exactas. El registro de profesionales es
+abierto y automático.
+**Ataque:** registrarse como profesional con un DNI inventado → `GET /api/trabajos`
+→ dirección exacta de todos los clientes del sistema.
+**Contexto:** los usuarios son personas solas en su casa esperando a un
+desconocido. Es el hallazgo más grave del proyecto.
+**Solución diseñada:** revelación por etapas, sección 3.3.b de este documento.
+
+**2. DNI y matrícula sin verificar.**
+Los campos existen pero nada los valida. Cualquiera se declara "premium
+matriculado". Es justamente el diferenciador del producto frente a Facebook
+Marketplace, y hoy es una declaración sin respaldo.
+**Mínimo:** revisión manual en el alta. **Ideal:** validar contra el registro
+correspondiente (gasistas → ENARGAS; electricistas varía por jurisdicción).
+
+**3. Credenciales débiles y registro sin límites.**
+Los usuarios de prueba usan `Test1234!`. El registro público
+(`/api/auth/register/...`) no tiene límite de intentos ni verificación de email.
+Aceptable mientras la API no sea pública; **revisar antes de exponerla**.
+
+### 🟠 Medio
+
+**4. `PagarDeudaAsync` no cobra nada.**
+Registra el asiento `pago_deuda` y limpia el estado Deudor sin transferencia
+real detrás. Un profesional salda su deuda sin mover un peso. Ver Bloque 4.5.
+
+**5. Postulaciones visibles entre competidores.**
+`TrabajoDetalleDto.Postulaciones` va completo a cualquiera que consulte el
+trabajo: un profesional ve los presupuestos de los demás. Ver sección 3.3.b.
+
+**6. Token de 24 h sin renovación ni revocación.**
+Un token robado vale un día completo y no hay forma de invalidarlo. Los refresh
+tokens están previstos en el Bloque 2; una lista de revocación, en el Bloque 7.
+
+### 🟢 Bajo — vulnerabilidades de npm (19 reportadas)
+
+**No son 19 problemas: son 3 causas raíz** contadas a lo largo de la cadena de
+dependencias.
+
+| Paquete | Severidad | Qué permite |
+|---|---|---|
+| `image-size` 1.2.1 | alta | DoS: bucle infinito parseando ICNS/JXL/HEIF |
+| `postcss` 8.4.49 | alta | Lectura de archivos vía `sourceMappingURL` manipulado |
+| `uuid` 7.0.3 | media | Falta de control de límites de buffer en v3/v5/v6 |
+
+**Por qué el riesgo real es bajo:** los tres corren en la **cadena de
+compilación** (Metro, procesamiento de CSS, generación de proyectos Xcode).
+Ninguno viaja en el bundle que llega al teléfono. Explotarlos exige meter un
+archivo malicioso dentro del propio proyecto, es decir, acceso de escritura al
+repositorio.
+
+**Cuándo dejaría de ser bajo:** si hubiera integración continua compilando pull
+requests de terceros, o si se aceptaran aportes externos de assets.
+
+**Se resuelve solo** cuando Expo publique un SDK 54 con esas dependencias al día.
+
+### Higiene de dependencias — pendiente
+
+- [ ] **Dependabot** en GitHub: avisa de actualizaciones de seguridad nuevas
+- [ ] **`npm audit` en CI**: detectar vulnerabilidades *nuevas*, no las ya
+      evaluadas y aceptadas arriba
+- [ ] `npx expo install --fix` periódicamente
+
+### Orden sugerido de trabajo
+
+Atacar del 1 al 6. El punto 1 primero. **El mejor momento es ahora, antes de
+tener usuarios reales**: con datos de gente de verdad, cada arreglo implica
+migración y ruptura de compatibilidad.
+
+---
+
 ## Dónde está el proyecto hoy
 
 **Funciona:** estructura Clean Architecture en .NET 9, EF Core, modelo de dominio completo
