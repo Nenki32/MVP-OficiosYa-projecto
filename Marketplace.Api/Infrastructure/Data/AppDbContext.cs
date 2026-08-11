@@ -38,6 +38,37 @@ public class AppDbContext : DbContext
                 "(rol = 'profesional' AND nivel_profesional = 'standard' AND numero_matricula IS NULL) OR " +
                 "(rol = 'profesional' AND nivel_profesional = 'premium' AND numero_matricula IS NOT NULL) OR " +
                 "(rol = 'admin' AND numero_matricula IS NULL)"));
+
+            // Tipo de perfil: persona fisica o empresa. Ortogonal al rol.
+            // El valor por defecto se declara en la base, no solo en C#: EF no
+            // lee los inicializadores de propiedad, y sin esto las filas que ya
+            // existen quedarian con cadena vacia y romperian el check de abajo.
+            e.Property(u => u.TipoPerfil)
+                .HasMaxLength(20)
+                .HasDefaultValue(TiposPerfil.Persona);
+            e.ToTable(t => t.HasCheckConstraint("CK_Usuarios_tipo_perfil",
+                "tipo_perfil IN ('persona', 'empresa')"));
+
+            // Una empresa necesita razon social; una persona no debe tenerla.
+            e.ToTable(t => t.HasCheckConstraint("CK_Usuarios_empresa",
+                "(tipo_perfil = 'persona' AND razon_social IS NULL AND cuit IS NULL) OR " +
+                "(tipo_perfil = 'empresa' AND razon_social IS NOT NULL)"));
+
+            e.Property(u => u.RazonSocial).HasMaxLength(200);
+            e.Property(u => u.Cuit).HasMaxLength(20);
+            e.Property(u => u.Descripcion).HasMaxLength(1000);
+
+            // Ubicacion geografica en SRID 4326. El indice GiST es lo que hace
+            // viable la busqueda por radio sin recorrer toda la tabla.
+            e.Property(u => u.Ubicacion).HasColumnType("geography (point,4326)");
+            e.HasIndex(u => u.Ubicacion).HasMethod("gist");
+
+            e.ToTable(t => t.HasCheckConstraint("CK_Usuarios_radio",
+                "radio_cobertura_km IS NULL OR radio_cobertura_km BETWEEN 1 AND 200"));
+
+            // Igual que TipoPerfil: sin esto los usuarios existentes quedarian
+            // marcados como no disponibles.
+            e.Property(u => u.Disponible).HasDefaultValue(true);
         });
 
         modelBuilder.Entity<Servicio>(e => e.ToTable("Servicios"));

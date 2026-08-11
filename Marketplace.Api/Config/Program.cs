@@ -74,6 +74,7 @@ builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IAuthService, AuthUseCase>();
 builder.Services.AddScoped<ITrabajoService, TrabajoUseCase>();
 builder.Services.AddScoped<ICuentaCorrienteService, CuentaCorrienteUseCase>();
+builder.Services.AddScoped<IPerfilProfesionalService, PerfilProfesionalUseCase>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
