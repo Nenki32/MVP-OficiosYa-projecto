@@ -43,6 +43,53 @@ public class TrabajoRepository : ITrabajoRepository
             .OrderByDescending(t => t.CreadoEn)
             .ToListAsync();
 
+    public async Task<List<TrabajoConDistancia>> GetParaProfesionalAsync(int profesionalId)
+    {
+        var profesional = await _db.Usuarios
+            .Include(u => u.Servicios)
+            .FirstOrDefaultAsync(u => u.Id == profesionalId);
+
+        if (profesional is null) return [];
+
+        var rubros = profesional.Servicios.Select(ps => ps.ServicioId).ToList();
+        var ubicacion = profesional.Ubicacion;
+        var radioMetros = profesional.RadioCoberturaKm * 1000d;
+
+        var query = _db.Trabajos
+            .Include(t => t.Cliente)
+            .Include(t => t.Profesional)
+            .Include(t => t.Servicio)
+            // Los trabajos propios se ven siempre, sin importar rubro ni radio:
+            // ya los tomo, no tendria sentido esconderlos si movio su zona.
+            .Where(t => t.ProfesionalId == profesionalId ||
+                        (t.ProfesionalId == null && t.Estado == "pendiente"));
+
+        if (rubros.Count > 0)
+            query = query.Where(t => t.ProfesionalId == profesionalId ||
+                                     rubros.Contains(t.ServicioId));
+
+        if (ubicacion is not null && radioMetros is not null)
+            query = query.Where(t => t.ProfesionalId == profesionalId ||
+                                     // Un trabajo sin coordenadas se muestra igual.
+                                     // Si se filtrara, un cliente que niega el permiso
+                                     // de ubicacion publicaria en el vacio: su pedido
+                                     // no le llegaria a nadie y nadie se enteraria.
+                                     t.Ubicacion == null ||
+                                     t.Ubicacion.Distance(ubicacion) <= radioMetros);
+
+        return await query
+            .Select(t => new TrabajoConDistancia
+            {
+                Trabajo = t,
+                DistanciaMetros = ubicacion != null && t.Ubicacion != null
+                    ? t.Ubicacion.Distance(ubicacion)
+                    : null,
+            })
+            .OrderBy(x => x.DistanciaMetros ?? double.MaxValue)
+            .ThenByDescending(x => x.Trabajo.CreadoEn)
+            .ToListAsync();
+    }
+
     public async Task<List<Trabajo>> GetPendientesAsync() =>
         await _db.Trabajos
             .Include(t => t.Cliente)

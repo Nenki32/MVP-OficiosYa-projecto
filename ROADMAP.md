@@ -93,7 +93,152 @@ de permitir ofertar en rubros regulados.
 
 ---
 
-## Dónde retomar (última sesión: 2026-08-09)
+## Convención de ramas (acordada 2026-08-11)
+
+**Una rama, una cosa.** Es la regla de la que se desprende todo lo demás.
+
+| Situación | Qué hacer |
+|---|---|
+| Funcionalidad nueva | Rama `feature/<nombre>` desde `master` |
+| Otra funcionalidad distinta | **Otra rama `feature/`**, no seguir en la anterior |
+| Corregir algo de una funcionalidad | `fix/` **de esa misma funcionalidad**, para que no se contradigan |
+| Solo documentación | `docs/<tema>` |
+
+**No apilar trabajo no relacionado en una rama abierta.** Aunque sea más cómodo
+seguir donde uno está, mezclar temas hace que:
+
+- el Pull Request sea imposible de revisar de a partes
+- no se pueda revertir una funcionalidad sin arrastrar las otras
+- el historial no explique en qué se estuvo trabajando
+
+**Ciclo:**
+
+```bash
+git checkout master && git pull
+git checkout -b feature/lo-que-sea
+# trabajar, commitear
+git push -u origin feature/lo-que-sea
+# PR -> master, mergear, borrar la rama
+```
+
+> **Ejemplo de lo que NO hay que hacer**, para que quede el precedente:
+> la rama `feature/perfil-profesional` termino cargando el perfil profesional,
+> la geolocalizacion, RLS y los calendarios — cuatro temas distintos en siete
+> commits. Deberian haber sido cuatro ramas.
+
+---
+
+## Dónde retomar (última sesión: 2026-08-11)
+
+> Estado para retomar en otro chat o por otro agente. Lo de abajo, fechado
+> 2026-08-09, quedó desactualizado en varias partes.
+
+### Rama activa
+
+`feature/perfil-profesional` — sale de `master` tras el merge del PR #8.
+
+### Qué se completó en esta sesión
+
+**Perfil profesional (backend + app).** Antes un profesional era solo un usuario
+con `rol='profesional'`: no declaraba oficios ni zona.
+
+- `Usuarios` sumó `tipo_perfil` (persona/empresa, **ortogonal al rol**),
+  `razon_social`, `cuit`, `descripcion`, `ubicacion` (geography 4326 + GiST),
+  `radio_cobertura_km` y `disponible`.
+- Endpoints en `/api/profesionales/me/`: `perfil` (GET/PUT), `ubicacion` (PUT),
+  `servicios` (PUT).
+- El perfil devuelve `faltantes`: lista de textos con lo que falta completar.
+  Se calcula en el servidor para que app y web no se contradigan.
+- App: `app/profesional/{editar,rubros,zona}.tsx` y el tab de perfil como
+  centro del onboarding.
+
+**Geolocalización operativa.**
+- `Trabajos.latitud_destino/longitud_destino` → `ubicacion` geography, con
+  traspaso de datos en la migración.
+- El cliente publica capturando GPS (`app/solicitar.tsx`).
+- La lista del profesional filtra por **sus rubros** y **su radio**, calcula
+  distancia con PostGIS y ordena de más cerca a más lejos.
+- `TrabajoDto.distanciaKm`, visible en la tarjeta.
+
+**Seguridad.** RLS habilitado en las 9 tablas (ver sección de seguridad).
+
+### Reglas de negocio implementadas, para no reabrirlas
+
+- **Los trabajos propios del profesional se ven siempre**, sin importar rubro ni
+  radio: si tomó un trabajo y después movió su zona, sería absurdo que
+  desaparezca de su lista.
+- **Un trabajo sin coordenadas se muestra a todos los profesionales**, con la
+  leyenda "Ubicación no especificada". Si se filtrara, un cliente que niega el
+  permiso de ubicación publicaría en el vacío sin enterarse.
+- **Si el profesional no cargó ubicación o radio, no se filtra por cercanía.**
+  Mejor mostrar todo que una lista vacía sin explicación.
+- **Radios ofrecidos: 5, 10, 15 y 20 km.** La base admite 1–200 como cota de
+  cordura; la restricción a esos cuatro valores es decisión de producto.
+- **No se muestran coordenadas crudas en pantalla.** Se usa geocodificación
+  inversa del sistema operativo para mostrar barrio y ciudad, con respaldo
+  a un texto genérico si falla.
+
+### Detectado probando el 2026-08-11 — arreglar primero
+
+**1. El profesional no puede aceptar un trabajo desde la app.**
+Se creó una petición para el 12 a las 9 y el profesional no pudo tomarla. La
+lista **no es tocable**: no hay detalle ni acción. Es el mismo bloqueo del punto
+1 de más abajo y confirma que es lo más urgente.
+Al verificarlo, comprobar además si el filtrado por rubro no lo está ocultando:
+si el rubro del trabajo no está entre los del profesional, no aparece.
+
+**2. "Ubicación no especificada" confunde cuando sí hay dirección.**
+La etiqueta se muestra cuando el trabajo no tiene **coordenadas**, pero el
+cliente pudo haber escrito la dirección igual. Son dos cosas distintas y la
+pantalla las mezcla.
+Opciones: cambiar el texto por algo como "Sin ubicación en el mapa", o
+geocodificar la dirección escrita (`Location.geocodeAsync` de expo-location usa
+el geocodificador del sistema, sin claves) para que tenga coordenadas aunque no
+se otorgue el permiso de GPS. **La segunda es mejor**: resuelve el problema en
+vez de renombrarlo.
+
+**3. El cliente no puede editar una petición publicada.**
+Si se equivocó en la dirección, la fecha o la descripción, no hay forma de
+corregirla. Hoy solo puede cancelar y volver a publicar.
+Definir hasta cuándo se permite editar: mientras esté `pendiente` es seguro;
+con un profesional ya asignado habría que avisarle del cambio.
+
+**4. La franja de "trabajos sin fecha" de la agenda no tiene acción.**
+Es solo texto. Debería poder tocarse para abrir el trabajo y asignarle una
+fecha, que es justamente para lo que está ahí.
+
+### Lo que sigue, en orden sugerido
+
+1. **Detalle del trabajo y envío de presupuesto desde la app.** Hoy la lista del
+   profesional **no es tocable**: no puede abrir un trabajo ni presupuestar.
+   Es el mayor bloqueo funcional. El backend ya lo soporta
+   (`POST /api/trabajos/{id}/postularse`).
+2. **Verificación de matrículas.** Hoy cualquiera se marca como Gasista sin
+   credencial, y gasista es un oficio regulado. Es el diferenciador declarado
+   del producto y no existe. Implica: marcar qué rubros son regulados, estado de
+   verificación por profesional, bloqueo de oferta sin verificar, y circuito de
+   revisión (manual al principio).
+   **Ojo:** el mensaje "Tu perfil está completo" solo valida rubros, ubicación y
+   radio. No valida identidad ni matrícula. El texto induce a error.
+3. **Foto de perfil.** Necesita almacenamiento; Supabase Storage encaja.
+4. **Icono de notificaciones** en el inicio del profesional (el del cliente ya
+   lo tiene).
+5. **Calendario del profesional** (ver 4.2.b) y disponibilidad horaria
+   (Bloque 4): sin esto el profesional no puede organizarse y se le pasan los
+   pendientes.
+6. **Suscripciones**, que reemplazan al modelo de comisiones descartado.
+
+### Pendientes técnicos conocidos
+
+- `Trabajos.latitud_inicio/longitud_inicio` siguen siendo `numeric` sueltos. Se
+  usan para el punto de partida del profesional al viajar y hoy nadie los lee.
+- El selector persona/empresa **no tiene pantalla**: el modelo lo soporta pero
+  se dejó fuera a propósito.
+- Los usuarios de prueba tienen contraseña `Test1234!`.
+
+---
+
+## Dónde retomar (sesión anterior: 2026-08-09)
 
 **La app mobile funciona en dispositivo real**, contra el backend local y
 Supabase. Login, inicio del cliente con selector de rubros, alta de petición,
@@ -156,6 +301,27 @@ con las vulnerabilidades de build.** Ver el detalle más abajo.
 Para actualizar dentro de lo que el SDK permite: `npx expo install --fix`.
 
 ---
+
+### ✅ Resuelto — RLS en Supabase (2026-08-11)
+
+Supabase avisaba que las tablas del esquema `public` estaban expuestas sin Row
+Level Security. **Era una alerta legítima:** Supabase publica ese esquema a
+través de PostgREST, accesible con la clave anónima, que está pensada para ir
+embebida en aplicaciones cliente y por lo tanto no es un secreto fuerte. Quien
+la obtuviera podía leer y escribir todas las tablas salteándose la API.
+
+**Solución aplicada** (migración `HabilitarRls`): RLS activo en las 9 tablas,
+**sin políticas**. La API no se ve afectada porque se conecta con el rol
+`postgres`, que es dueño de las tablas y tiene `BYPASSRLS`; los roles `anon` y
+`authenticated` de PostgREST quedan alcanzados y, sin políticas, no ven ninguna fila.
+
+Se usó `ENABLE` y no `FORCE` a propósito: `FORCE` aplicaría RLS también al dueño
+y dejaría a la API sin acceso.
+
+> **Si algún día se usa PostgREST directamente desde el cliente**, habrá que
+> escribir políticas. Hoy no se usa: todo pasa por la API .NET.
+
+Verificado: lecturas y escrituras de la API siguen respondiendo 200 con RLS activo.
 
 ### 🔴 Alto — explotable hoy, en código propio
 
@@ -560,7 +726,34 @@ Es un argumento más para la migración del Bloque 2.
 > nadie lo carga el calendario aparece vacío — el mismo problema de arranque que el
 > mapa vacío. Va con la misma solución: caer al flujo de postulaciones.
 
-### 4.2 Calendario
+### 4.2.b Calendario del profesional en la app
+
+Distinto de 4.1: eso define **cómo se reserva** un turno; esto es **cómo el
+profesional ve y gestiona lo que ya tomó**. Es la pantalla que evita que se le
+pasen los pendientes, y probablemente lo que más lo retiene en la plataforma.
+
+> **Dependencia bloqueante:** hoy un trabajo **no tiene fecha de visita**, solo
+> `creado_en`. Sin `fecha_visita` en `Trabajos` no hay nada que ubicar en un
+> calendario. Ese campo llega con 4.1.
+
+- [ ] Nueva pestaña **Agenda** en la barra inferior del profesional
+- [ ] Vista mensual con marcas en los días que tienen trabajos
+- [ ] Al tocar un día, la lista de ese día ordenada por hora, con rubro,
+      cliente, dirección y estado
+- [ ] Vista de "hoy" como pantalla de entrada: es la consulta más frecuente
+- [ ] Acceso directo al detalle del trabajo desde cada entrada
+- [ ] Aviso visual de solapamientos y de trabajos sin fecha asignada
+- [ ] Filtro por estado (agendado / en curso / completado)
+
+**Decisiones a tomar cuando se encare:**
+
+- ¿Se usa una librería de calendario (`react-native-calendars` es el estándar
+  en Expo) o se dibuja a mano? La librería ahorra mucho trabajo pero suma una
+  dependencia y su propio criterio visual, que hay que alinear con `theme.ts`.
+- ¿Qué se muestra de los trabajos **sin** fecha? No pueden desaparecer del
+  calendario o se pierden; conviene una franja de "sin agendar" arriba.
+
+### 4.2 Sincronización con calendarios externos
 
 - [ ] **MVP: archivo `.ics` / link "Agregar al calendario".** Cero OAuth, cero
       verificación de Google, funciona con Google/Apple/Outlook. Es de ida nomás

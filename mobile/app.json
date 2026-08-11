@@ -24,7 +24,13 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "OficiosYa usa tu ubicación para mostrarte trabajos y profesionales cercanos."
+        }
+      ]
     ],
     "extra": {
       "apiUrl": "http://192.168.1.4:5100/api"

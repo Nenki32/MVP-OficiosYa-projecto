@@ -1,3 +1,5 @@
+using NetTopologySuite.Geometries;
+
 namespace Marketplace.Api.Core.Models;
 
 public class Trabajo
@@ -9,9 +11,28 @@ public class Trabajo
     public string Estado { get; set; } = "pendiente";
     public string? Descripcion { get; set; }
     public string TipoPago { get; set; } = "efectivo";
-    public decimal? LatitudDestino { get; set; }
-    public decimal? LongitudDestino { get; set; }
+
+    /// <summary>
+    /// Donde se realiza el trabajo, en SRID 4326. Reemplaza a las columnas
+    /// decimales de latitud y longitud: con un tipo geografico la distancia y
+    /// el filtrado por radio se resuelven en la base, con indice, en vez de
+    /// traer todas las filas y calcular en memoria.
+    /// </summary>
+    public Point? Ubicacion { get; set; }
+
     public string? DireccionDestino { get; set; }
+
+    /// <summary>
+    /// Dia y hora que el cliente propone para la visita.
+    ///
+    /// Es una PROPUESTA, no una reserva: al publicar todavia no hay profesional
+    /// asignado, asi que no hay agenda que ocupar. Se convierte en turno cuando
+    /// un profesional acepta el trabajo.
+    /// </summary>
+    public DateTime? FechaVisita { get; set; }
+
+    /// <summary>Duracion estimada en minutos. Por ahora, franjas de una hora.</summary>
+    public int? DuracionEstimadaMin { get; set; }
     public decimal? LatitudInicio { get; set; }
     public decimal? LongitudInicio { get; set; }
     public DateTime CreadoEn { get; set; } = DateTime.UtcNow;

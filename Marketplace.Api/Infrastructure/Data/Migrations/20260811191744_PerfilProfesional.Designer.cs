@@ -3,6 +3,7 @@ using System;
 using Marketplace.Api.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Marketplace.Api.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260811191744_PerfilProfesional")]
+    partial class PerfilProfesional
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -374,24 +377,26 @@ namespace Marketplace.Api.Infrastructure.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("direccion_destino");
 
-                    b.Property<int?>("DuracionEstimadaMin")
-                        .HasColumnType("integer")
-                        .HasColumnName("duracion_estimada_min");
-
                     b.Property<string>("Estado")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("estado");
 
-                    b.Property<DateTime?>("FechaVisita")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("fecha_visita");
+                    b.Property<decimal?>("LatitudDestino")
+                        .HasPrecision(10, 7)
+                        .HasColumnType("numeric(10,7)")
+                        .HasColumnName("latitud_destino");
 
                     b.Property<decimal?>("LatitudInicio")
                         .HasPrecision(10, 7)
                         .HasColumnType("numeric(10,7)")
                         .HasColumnName("latitud_inicio");
+
+                    b.Property<decimal?>("LongitudDestino")
+                        .HasPrecision(10, 7)
+                        .HasColumnType("numeric(10,7)")
+                        .HasColumnName("longitud_destino");
 
                     b.Property<decimal?>("LongitudInicio")
                         .HasPrecision(10, 7)
@@ -412,30 +417,21 @@ namespace Marketplace.Api.Infrastructure.Data.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("tipo_pago");
 
-                    b.Property<Point>("Ubicacion")
-                        .HasColumnType("geography (point,4326)")
-                        .HasColumnName("ubicacion");
-
                     b.HasKey("Id")
                         .HasName("pk_trabajos");
 
-                    b.HasIndex("Estado")
-                        .HasDatabaseName("ix_trabajos_estado")
-                        .HasFilter("estado IN ('pendiente', 'aceptado')");
-
                     b.HasIndex("ServicioId")
                         .HasDatabaseName("ix_trabajos_servicio_id");
-
-                    b.HasIndex("Ubicacion")
-                        .HasDatabaseName("ix_trabajos_ubicacion");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Ubicacion"), "gist");
 
                     b.HasIndex("ClienteId", "Estado")
                         .HasDatabaseName("ix_trabajos_cliente_id_estado");
 
                     b.HasIndex("ProfesionalId", "Estado")
                         .HasDatabaseName("ix_trabajos_profesional_id_estado");
+
+                    b.HasIndex("Estado", "LatitudDestino", "LongitudDestino")
+                        .HasDatabaseName("ix_trabajos_estado_latitud_destino_longitud_destino")
+                        .HasFilter("estado IN ('pendiente', 'aceptado')");
 
                     b.ToTable("Trabajos", null, t =>
                         {

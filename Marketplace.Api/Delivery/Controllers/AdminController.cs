@@ -74,7 +74,9 @@ public class AdminController : ControllerBase
                     t.Id, Cliente = t.Cliente.Nombre,
                     Profesional = t.Profesional != null ? t.Profesional.Nombre : null,
                     Servicio = t.Servicio.Nombre, t.Estado, t.TipoPago,
-                    t.LatitudDestino, t.LongitudDestino, t.DireccionDestino,
+                    Latitud = t.Ubicacion != null ? t.Ubicacion.Y : (double?)null,
+                    Longitud = t.Ubicacion != null ? t.Ubicacion.X : (double?)null,
+                    t.DireccionDestino,
                     t.CreadoEn, t.ActualizadoEn
                 })
                 .ToListAsync();
@@ -106,7 +108,9 @@ public class AdminController : ControllerBase
                         ? new { t.Profesional.Id, t.Profesional.Nombre, t.Profesional.Email }
                         : null,
                     Servicio = t.Servicio.Nombre, t.Estado, t.Descripcion, t.TipoPago,
-                    t.LatitudDestino, t.LongitudDestino, t.DireccionDestino,
+                    Latitud = t.Ubicacion != null ? t.Ubicacion.Y : (double?)null,
+                    Longitud = t.Ubicacion != null ? t.Ubicacion.X : (double?)null,
+                    t.DireccionDestino,
                     t.LatitudInicio, t.LongitudInicio,
                     Pago = t.Pago != null
                         ? new { t.Pago.MontoTotal, t.Pago.Comision, t.Pago.TipoPago, t.Pago.Estado }

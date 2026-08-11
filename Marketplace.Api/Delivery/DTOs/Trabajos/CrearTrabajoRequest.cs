@@ -15,11 +15,17 @@ public class CrearTrabajoRequest
     public string TipoPago { get; set; } = "efectivo";
 
     [Range(-90.0, 90.0, ErrorMessage = "La latitud debe estar entre -90 y 90.")]
-    public decimal? LatitudDestino { get; set; }
+    public double? LatitudDestino { get; set; }
 
     [Range(-180.0, 180.0, ErrorMessage = "La longitud debe estar entre -180 y 180.")]
-    public decimal? LongitudDestino { get; set; }
+    public double? LongitudDestino { get; set; }
 
     [MaxLength(500)]
     public string? DireccionDestino { get; set; }
+
+    /// <summary>
+    /// Dia y hora propuestos para la visita. Opcional: un pedido urgente puede
+    /// publicarse sin fecha y coordinarse despues.
+    /// </summary>
+    public DateTime? FechaVisita { get; set; }
 }

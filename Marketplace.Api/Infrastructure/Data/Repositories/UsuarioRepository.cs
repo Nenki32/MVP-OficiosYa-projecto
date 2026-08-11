@@ -33,4 +33,43 @@ public class UsuarioRepository : IUsuarioRepository
 
     public async Task<List<Usuario>> GetAllAsync() =>
         await _db.Usuarios.OrderBy(u => u.CreadoEn).ToListAsync();
+
+    public async Task<Usuario?> GetConServiciosAsync(int id) =>
+        await _db.Usuarios
+            .Include(u => u.Servicios)
+                .ThenInclude(ps => ps.Servicio)
+            .FirstOrDefaultAsync(u => u.Id == id);
+
+    public async Task ReemplazarServiciosAsync(int profesionalId, IEnumerable<int> servicioIds)
+    {
+        var deseados = servicioIds.Distinct().ToHashSet();
+
+        var actuales = await _db.ProfesionalServicios
+            .Where(ps => ps.ProfesionalId == profesionalId)
+            .ToListAsync();
+
+        // Solo se tocan las diferencias: sin esto, borrar todo y volver a
+        // insertar generaria escrituras innecesarias en cada guardado.
+        var aQuitar = actuales.Where(ps => !deseados.Contains(ps.ServicioId)).ToList();
+        var yaEstan = actuales.Select(ps => ps.ServicioId).ToHashSet();
+        var aAgregar = deseados.Except(yaEstan);
+
+        _db.ProfesionalServicios.RemoveRange(aQuitar);
+        _db.ProfesionalServicios.AddRange(aAgregar.Select(id => new ProfesionalServicio
+        {
+            ProfesionalId = profesionalId,
+            ServicioId = id,
+        }));
+
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task<List<int>> FiltrarServiciosExistentesAsync(IEnumerable<int> servicioIds)
+    {
+        var ids = servicioIds.Distinct().ToList();
+        return await _db.Servicios
+            .Where(s => ids.Contains(s.Id))
+            .Select(s => s.Id)
+            .ToListAsync();
+    }
 }

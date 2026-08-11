@@ -11,8 +11,19 @@ public class TrabajoDto
     public string ServicioNombre { get; set; } = null!;
     public string Estado { get; set; } = null!;
     public string TipoPago { get; set; } = null!;
-    public decimal? LatitudDestino { get; set; }
-    public decimal? LongitudDestino { get; set; }
+    public double? LatitudDestino { get; set; }
+    public double? LongitudDestino { get; set; }
     public string? DireccionDestino { get; set; }
+
+    /// <summary>
+    /// Distancia en kilometros entre el trabajo y el profesional que consulta.
+    /// Null si alguno de los dos no tiene ubicacion, o si quien consulta no es
+    /// un profesional.
+    /// </summary>
+    public double? DistanciaKm { get; set; }
+
+    /// <summary>Dia y hora propuestos por el cliente para la visita.</summary>
+    public DateTime? FechaVisita { get; set; }
+
     public DateTime CreadoEn { get; set; }
 }

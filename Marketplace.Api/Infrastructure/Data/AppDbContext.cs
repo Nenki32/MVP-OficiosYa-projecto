@@ -38,6 +38,37 @@ public class AppDbContext : DbContext
                 "(rol = 'profesional' AND nivel_profesional = 'standard' AND numero_matricula IS NULL) OR " +
                 "(rol = 'profesional' AND nivel_profesional = 'premium' AND numero_matricula IS NOT NULL) OR " +
                 "(rol = 'admin' AND numero_matricula IS NULL)"));
+
+            // Tipo de perfil: persona fisica o empresa. Ortogonal al rol.
+            // El valor por defecto se declara en la base, no solo en C#: EF no
+            // lee los inicializadores de propiedad, y sin esto las filas que ya
+            // existen quedarian con cadena vacia y romperian el check de abajo.
+            e.Property(u => u.TipoPerfil)
+                .HasMaxLength(20)
+                .HasDefaultValue(TiposPerfil.Persona);
+            e.ToTable(t => t.HasCheckConstraint("CK_Usuarios_tipo_perfil",
+                "tipo_perfil IN ('persona', 'empresa')"));
+
+            // Una empresa necesita razon social; una persona no debe tenerla.
+            e.ToTable(t => t.HasCheckConstraint("CK_Usuarios_empresa",
+                "(tipo_perfil = 'persona' AND razon_social IS NULL AND cuit IS NULL) OR " +
+                "(tipo_perfil = 'empresa' AND razon_social IS NOT NULL)"));
+
+            e.Property(u => u.RazonSocial).HasMaxLength(200);
+            e.Property(u => u.Cuit).HasMaxLength(20);
+            e.Property(u => u.Descripcion).HasMaxLength(1000);
+
+            // Ubicacion geografica en SRID 4326. El indice GiST es lo que hace
+            // viable la busqueda por radio sin recorrer toda la tabla.
+            e.Property(u => u.Ubicacion).HasColumnType("geography (point,4326)");
+            e.HasIndex(u => u.Ubicacion).HasMethod("gist");
+
+            e.ToTable(t => t.HasCheckConstraint("CK_Usuarios_radio",
+                "radio_cobertura_km IS NULL OR radio_cobertura_km BETWEEN 1 AND 200"));
+
+            // Igual que TipoPerfil: sin esto los usuarios existentes quedarian
+            // marcados como no disponibles.
+            e.Property(u => u.Disponible).HasDefaultValue(true);
         });
 
         modelBuilder.Entity<Servicio>(e => e.ToTable("Servicios"));
@@ -70,18 +101,24 @@ public class AppDbContext : DbContext
             e.Property(t => t.Estado).HasMaxLength(20);
             e.Property(t => t.TipoPago).HasMaxLength(20);
 
-            // Coordenadas: sin esto EF mapea decimal(18,2) por defecto y redondea
-            // la posicion a 2 decimales (~1 km) antes de llegar a SQL Server.
-            e.Property(t => t.LatitudDestino).HasPrecision(10, 7);
-            e.Property(t => t.LongitudDestino).HasPrecision(10, 7);
+            // Coordenadas del punto de partida del profesional cuando viaja.
+            // Sin precision explicita EF mapea decimal(18,2) y redondea la
+            // posicion a ~1 km.
             e.Property(t => t.LatitudInicio).HasPrecision(10, 7);
             e.Property(t => t.LongitudInicio).HasPrecision(10, 7);
+
+            // Donde se realiza el trabajo. El indice GiST es lo que permite
+            // filtrar por radio sin recorrer la tabla entera.
+            e.Property(t => t.Ubicacion).HasColumnType("geography (point,4326)");
+            e.HasIndex(t => t.Ubicacion).HasMethod("gist");
 
             e.ToTable(t => t.HasCheckConstraint("CK_Trabajos_estado",
                 "estado IN ('pendiente', 'aceptado', 'viajando', 'en_progreso', 'completado', 'cancelado')"));
             e.ToTable(t => t.HasCheckConstraint("CK_Trabajos_tipo_pago",
                 "tipo_pago IN ('efectivo', 'tarjeta', 'transferencia')"));
-            e.HasIndex(t => new { t.Estado, t.LatitudDestino, t.LongitudDestino })
+            // El indice geografico lo cubre el GiST sobre ubicacion; este solo
+            // acota por estado, que es el filtro previo de toda busqueda.
+            e.HasIndex(t => t.Estado)
                 .HasFilter("estado IN ('pendiente', 'aceptado')");
             e.HasIndex(t => new { t.ClienteId, t.Estado });
             e.HasIndex(t => new { t.ProfesionalId, t.Estado });
