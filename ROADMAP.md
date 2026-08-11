@@ -93,6 +93,41 @@ de permitir ofertar en rubros regulados.
 
 ---
 
+## Convención de ramas (acordada 2026-08-11)
+
+**Una rama, una cosa.** Es la regla de la que se desprende todo lo demás.
+
+| Situación | Qué hacer |
+|---|---|
+| Funcionalidad nueva | Rama `feature/<nombre>` desde `master` |
+| Otra funcionalidad distinta | **Otra rama `feature/`**, no seguir en la anterior |
+| Corregir algo de una funcionalidad | `fix/` **de esa misma funcionalidad**, para que no se contradigan |
+| Solo documentación | `docs/<tema>` |
+
+**No apilar trabajo no relacionado en una rama abierta.** Aunque sea más cómodo
+seguir donde uno está, mezclar temas hace que:
+
+- el Pull Request sea imposible de revisar de a partes
+- no se pueda revertir una funcionalidad sin arrastrar las otras
+- el historial no explique en qué se estuvo trabajando
+
+**Ciclo:**
+
+```bash
+git checkout master && git pull
+git checkout -b feature/lo-que-sea
+# trabajar, commitear
+git push -u origin feature/lo-que-sea
+# PR -> master, mergear, borrar la rama
+```
+
+> **Ejemplo de lo que NO hay que hacer**, para que quede el precedente:
+> la rama `feature/perfil-profesional` termino cargando el perfil profesional,
+> la geolocalizacion, RLS y los calendarios — cuatro temas distintos en siete
+> commits. Deberian haber sido cuatro ramas.
+
+---
+
 ## Dónde retomar (última sesión: 2026-08-11)
 
 > Estado para retomar en otro chat o por otro agente. Lo de abajo, fechado

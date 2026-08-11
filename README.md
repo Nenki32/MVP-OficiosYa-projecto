@@ -273,6 +273,14 @@ como públicos.
 |---|---|
 | `master` | Producción — rama por defecto, solo código estable |
 | `feature/*` | Funcionalidad nueva |
-| `fix/*` | Correcciones |
+| `fix/*` | Correcciones sobre una funcionalidad existente |
+| `docs/*` | Solo documentación |
+
+**Una rama, una cosa.** Cada funcionalidad nueva abre su propia rama desde
+`master`; no se apila trabajo no relacionado sobre una rama ya abierta. Una
+corrección va en una rama `fix/` de la funcionalidad a la que pertenece.
+
+Mezclar temas en una rama hace que el Pull Request no se pueda revisar de a
+partes y que no se pueda revertir una funcionalidad sin arrastrar las otras.
 
 Los merges a `master` se hacen vía Pull Request.
