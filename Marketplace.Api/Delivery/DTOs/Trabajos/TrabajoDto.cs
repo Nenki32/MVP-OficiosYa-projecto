@@ -22,5 +22,8 @@ public class TrabajoDto
     /// </summary>
     public double? DistanciaKm { get; set; }
 
+    /// <summary>Dia y hora propuestos por el cliente para la visita.</summary>
+    public DateTime? FechaVisita { get; set; }
+
     public DateTime CreadoEn { get; set; }
 }

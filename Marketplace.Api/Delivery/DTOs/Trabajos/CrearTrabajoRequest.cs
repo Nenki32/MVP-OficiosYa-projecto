@@ -22,4 +22,10 @@ public class CrearTrabajoRequest
 
     [MaxLength(500)]
     public string? DireccionDestino { get; set; }
+
+    /// <summary>
+    /// Dia y hora propuestos para la visita. Opcional: un pedido urgente puede
+    /// publicarse sin fecha y coordinarse despues.
+    /// </summary>
+    public DateTime? FechaVisita { get; set; }
 }

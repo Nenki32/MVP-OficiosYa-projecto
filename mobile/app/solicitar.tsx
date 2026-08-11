@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { api } from '../src/api/client'
 import { iconoDeServicio } from '../src/api/servicios'
+import { aFechaLocal, formatFechaLarga } from '../src/components/Calendario'
 import { Pantalla } from '../src/components/Pantalla'
 import { describirUbicacion, useUbicacion, type Coordenadas } from '../src/hooks/useUbicacion'
 import { colors, radius, spacing, typography } from '../src/theme'
@@ -19,9 +20,11 @@ const TIPOS_PAGO = [
 
 export default function Solicitar() {
   const router = useRouter()
-  const { servicioId, servicioNombre } = useLocalSearchParams<{
+  const { servicioId, servicioNombre, dia, hora } = useLocalSearchParams<{
     servicioId: string
     servicioNombre: string
+    dia?: string
+    hora?: string
   }>()
 
   const { obtener, obteniendo, error: errorGps } = useUbicacion()
@@ -57,6 +60,9 @@ export default function Solicitar() {
         // busquedas por cercania de los profesionales.
         latitudDestino: coords?.latitud ?? null,
         longitudDestino: coords?.longitud ?? null,
+        // Fecha propuesta por el cliente. Se envia en ISO con zona horaria
+        // para que el servidor la interprete sin ambiguedad.
+        fechaVisita: dia && hora ? aFechaLocal(dia, Number(hora)).toISOString() : null,
       })
       router.replace('/mis-peticiones')
     } catch (e: any) {
@@ -89,7 +95,14 @@ export default function Solicitar() {
                 color={colors.primaryDark}
               />
             </View>
-            <Text style={typography.bodyStrong}>{servicioNombre}</Text>
+            <View style={s.flex}>
+              <Text style={typography.bodyStrong}>{servicioNombre}</Text>
+              {dia && hora && (
+                <Text style={typography.caption}>
+                  {formatFechaLarga(dia)} · {String(hora).padStart(2, '0')}:00
+                </Text>
+              )}
+            </View>
           </View>
 
           {/* Ubicacion: es lo que permite que los profesionales cercanos

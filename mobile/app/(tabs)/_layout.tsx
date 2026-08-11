@@ -43,6 +43,19 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="agenda"
+        options={{
+          title: 'Agenda',
+          // La agenda es del profesional: el cliente no gestiona trabajos
+          // tomados. Se oculta en vez de no registrarla, para que la ruta
+          // exista y no rompa si alguien navega a ella.
+          href: esProfesional ? '/agenda' : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="perfil"
         options={{
           title: 'Perfil',

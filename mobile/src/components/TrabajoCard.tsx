@@ -11,6 +11,8 @@ export interface Trabajo {
   estado: string
   tipoPago: string
   direccionDestino: string | null
+  /** Día y hora propuestos para la visita. Null si no se agendó. */
+  fechaVisita: string | null
   /** Km hasta el profesional. Null si alguno de los dos no tiene ubicación. */
   distanciaKm: number | null
   creadoEn: string

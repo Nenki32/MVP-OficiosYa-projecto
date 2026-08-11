@@ -18,7 +18,7 @@ export function HomeCliente() {
   // queda otra vez en su estado inicial.
   const irASolicitar = (rubro: Servicio) =>
     router.push({
-      pathname: '/solicitar',
+      pathname: '/agendar',
       params: { servicioId: String(rubro.id), servicioNombre: rubro.nombre },
     })
 

@@ -39,6 +39,8 @@ public class TrabajoUseCase : ITrabajoService
             Descripcion = request.Descripcion,
             TipoPago = request.TipoPago,
             Ubicacion = CrearPunto(request.LatitudDestino, request.LongitudDestino),
+            FechaVisita = request.FechaVisita?.ToUniversalTime(),
+            DuracionEstimadaMin = request.FechaVisita is null ? null : 60,
             DireccionDestino = request.DireccionDestino
         };
 
@@ -83,6 +85,7 @@ public class TrabajoUseCase : ITrabajoService
         LongitudDestino = t.Ubicacion?.X,
         DireccionDestino = t.DireccionDestino,
         DistanciaKm = distanciaKm,
+        FechaVisita = t.FechaVisita,
         CreadoEn = t.CreadoEn
     };
 
