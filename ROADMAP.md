@@ -157,6 +157,27 @@ Para actualizar dentro de lo que el SDK permite: `npx expo install --fix`.
 
 ---
 
+### ✅ Resuelto — RLS en Supabase (2026-08-11)
+
+Supabase avisaba que las tablas del esquema `public` estaban expuestas sin Row
+Level Security. **Era una alerta legítima:** Supabase publica ese esquema a
+través de PostgREST, accesible con la clave anónima, que está pensada para ir
+embebida en aplicaciones cliente y por lo tanto no es un secreto fuerte. Quien
+la obtuviera podía leer y escribir todas las tablas salteándose la API.
+
+**Solución aplicada** (migración `HabilitarRls`): RLS activo en las 9 tablas,
+**sin políticas**. La API no se ve afectada porque se conecta con el rol
+`postgres`, que es dueño de las tablas y tiene `BYPASSRLS`; los roles `anon` y
+`authenticated` de PostgREST quedan alcanzados y, sin políticas, no ven ninguna fila.
+
+Se usó `ENABLE` y no `FORCE` a propósito: `FORCE` aplicaría RLS también al dueño
+y dejaría a la API sin acceso.
+
+> **Si algún día se usa PostgREST directamente desde el cliente**, habrá que
+> escribir políticas. Hoy no se usa: todo pasa por la API .NET.
+
+Verificado: lecturas y escrituras de la API siguen respondiendo 200 con RLS activo.
+
 ### 🔴 Alto — explotable hoy, en código propio
 
 **1. Fuga de direcciones de clientes.**
