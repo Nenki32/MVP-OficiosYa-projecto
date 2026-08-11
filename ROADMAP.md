@@ -159,8 +159,9 @@ con `rol='profesional'`: no declaraba oficios ni zona.
 3. **Foto de perfil.** Necesita almacenamiento; Supabase Storage encaja.
 4. **Icono de notificaciones** en el inicio del profesional (el del cliente ya
    lo tiene).
-5. **Agenda y disponibilidad horaria** (Bloque 4): sin esto el profesional no
-   puede organizarse y se le pasan los pendientes.
+5. **Calendario del profesional** (ver 4.2.b) y disponibilidad horaria
+   (Bloque 4): sin esto el profesional no puede organizarse y se le pasan los
+   pendientes.
 6. **Suscripciones**, que reemplazan al modelo de comisiones descartado.
 
 ### Pendientes técnicos conocidos
@@ -661,7 +662,34 @@ Es un argumento más para la migración del Bloque 2.
 > nadie lo carga el calendario aparece vacío — el mismo problema de arranque que el
 > mapa vacío. Va con la misma solución: caer al flujo de postulaciones.
 
-### 4.2 Calendario
+### 4.2.b Calendario del profesional en la app
+
+Distinto de 4.1: eso define **cómo se reserva** un turno; esto es **cómo el
+profesional ve y gestiona lo que ya tomó**. Es la pantalla que evita que se le
+pasen los pendientes, y probablemente lo que más lo retiene en la plataforma.
+
+> **Dependencia bloqueante:** hoy un trabajo **no tiene fecha de visita**, solo
+> `creado_en`. Sin `fecha_visita` en `Trabajos` no hay nada que ubicar en un
+> calendario. Ese campo llega con 4.1.
+
+- [ ] Nueva pestaña **Agenda** en la barra inferior del profesional
+- [ ] Vista mensual con marcas en los días que tienen trabajos
+- [ ] Al tocar un día, la lista de ese día ordenada por hora, con rubro,
+      cliente, dirección y estado
+- [ ] Vista de "hoy" como pantalla de entrada: es la consulta más frecuente
+- [ ] Acceso directo al detalle del trabajo desde cada entrada
+- [ ] Aviso visual de solapamientos y de trabajos sin fecha asignada
+- [ ] Filtro por estado (agendado / en curso / completado)
+
+**Decisiones a tomar cuando se encare:**
+
+- ¿Se usa una librería de calendario (`react-native-calendars` es el estándar
+  en Expo) o se dibuja a mano? La librería ahorra mucho trabajo pero suma una
+  dependencia y su propio criterio visual, que hay que alinear con `theme.ts`.
+- ¿Qué se muestra de los trabajos **sin** fecha? No pueden desaparecer del
+  calendario o se pierden; conviene una franja de "sin agendar" arriba.
+
+### 4.2 Sincronización con calendarios externos
 
 - [ ] **MVP: archivo `.ics` / link "Agregar al calendario".** Cero OAuth, cero
       verificación de Google, funciona con Google/Apple/Outlook. Es de ida nomás
