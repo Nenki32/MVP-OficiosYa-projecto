@@ -6,11 +6,17 @@ import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { profesionalesApi, type PerfilProfesional } from '../../src/api/profesionales'
 import { Pantalla } from '../../src/components/Pantalla'
-import { useUbicacion } from '../../src/hooks/useUbicacion'
+import { describirUbicacion, useUbicacion } from '../../src/hooks/useUbicacion'
 import { colors, radius, spacing, typography } from '../../src/theme'
 
-/** Opciones de radio. Cubren desde un barrio hasta media provincia. */
-const RADIOS = [5, 10, 15, 25, 50, 100]
+/**
+ * Opciones de radio de accion, en kilometros.
+ *
+ * Se acotan a distancias de trabajo realistas dentro de una ciudad: un oficio
+ * del hogar no se atiende a 100 km, y ofrecer esos valores solo lleva a
+ * perfiles con radios que despues no se cumplen.
+ */
+const RADIOS = [5, 10, 15, 20]
 
 export default function Zona() {
   const router = useRouter()
@@ -18,13 +24,20 @@ export default function Zona() {
 
   const [perfil, setPerfil] = useState<PerfilProfesional | null>(null)
   const [radio, setRadio] = useState<number | null>(null)
+  const [zona, setZona] = useState<string | null>(null)
   const [cargando, setCargando] = useState(true)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
 
+  /** Traduce las coordenadas a barrio y ciudad para mostrarlas legibles. */
+  const describir = async (p: PerfilProfesional) => {
+    if (p.latitud == null || p.longitud == null) { setZona(null); return }
+    setZona(await describirUbicacion(p.latitud, p.longitud))
+  }
+
   useEffect(() => {
     profesionalesApi.miPerfil()
-      .then(p => { setPerfil(p); setRadio(p.radioCoberturaKm) })
+      .then(p => { setPerfil(p); setRadio(p.radioCoberturaKm); describir(p) })
       .catch((e: any) => setError(e?.message ?? 'No se pudo cargar tu perfil.'))
       .finally(() => setCargando(false))
   }, [])
@@ -35,7 +48,9 @@ export default function Zona() {
 
     setError('')
     try {
-      setPerfil(await profesionalesApi.actualizarUbicacion(coords.latitud, coords.longitud))
+      const actualizado = await profesionalesApi.actualizarUbicacion(coords.latitud, coords.longitud)
+      setPerfil(actualizado)
+      describir(actualizado)
     } catch (e: any) {
       setError(e?.message ?? 'No se pudo guardar la ubicación.')
     }
@@ -101,7 +116,7 @@ export default function Zona() {
                 </Text>
                 <Text style={typography.caption}>
                   {tieneUbicacion
-                    ? `${perfil!.latitud!.toFixed(5)}, ${perfil!.longitud!.toFixed(5)}`
+                    ? (zona ?? 'Guardada en tu perfil')
                     : 'Necesitamos tu ubicación para el filtrado por cercanía'}
                 </Text>
               </View>

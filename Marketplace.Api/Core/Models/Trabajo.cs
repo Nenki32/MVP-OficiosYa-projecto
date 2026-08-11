@@ -1,3 +1,5 @@
+using NetTopologySuite.Geometries;
+
 namespace Marketplace.Api.Core.Models;
 
 public class Trabajo
@@ -9,8 +11,15 @@ public class Trabajo
     public string Estado { get; set; } = "pendiente";
     public string? Descripcion { get; set; }
     public string TipoPago { get; set; } = "efectivo";
-    public decimal? LatitudDestino { get; set; }
-    public decimal? LongitudDestino { get; set; }
+
+    /// <summary>
+    /// Donde se realiza el trabajo, en SRID 4326. Reemplaza a las columnas
+    /// decimales de latitud y longitud: con un tipo geografico la distancia y
+    /// el filtrado por radio se resuelven en la base, con indice, en vez de
+    /// traer todas las filas y calcular en memoria.
+    /// </summary>
+    public Point? Ubicacion { get; set; }
+
     public string? DireccionDestino { get; set; }
     public decimal? LatitudInicio { get; set; }
     public decimal? LongitudInicio { get; set; }

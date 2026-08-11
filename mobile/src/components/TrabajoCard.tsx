@@ -11,8 +11,14 @@ export interface Trabajo {
   estado: string
   tipoPago: string
   direccionDestino: string | null
+  /** Km hasta el profesional. Null si alguno de los dos no tiene ubicación. */
+  distanciaKm: number | null
   creadoEn: string
 }
+
+/** "0.8 km" para distancias cortas, "1,6 km" para el resto. */
+const formatDistancia = (km: number) =>
+  km < 1 ? `${Math.round(km * 1000)} m` : `${km.toString().replace('.', ',')} km`
 
 const formatFecha = (iso: string) =>
   new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })
@@ -24,10 +30,13 @@ const formatFecha = (iso: string) =>
 export function TrabajoCard({
   trabajo,
   verContraparte,
+  mostrarDistancia = false,
 }: {
   trabajo: Trabajo
   /** A quien mostrar debajo del rubro: el cliente o el profesional. */
   verContraparte: 'cliente' | 'profesional'
+  /** Solo el profesional ve distancias: al cliente no le aportan nada. */
+  mostrarDistancia?: boolean
 }) {
   const colorEstado = colors.estado[trabajo.estado] ?? colors.textMuted
 
@@ -54,6 +63,22 @@ export function TrabajoCard({
           <Text style={typography.caption} numberOfLines={1}>
             {trabajo.direccionDestino}
           </Text>
+        )}
+
+        {mostrarDistancia && (
+          trabajo.distanciaKm != null ? (
+            <View style={s.distancia}>
+              <Ionicons name="navigate-outline" size={12} color={colors.primaryDark} />
+              <Text style={s.distanciaTexto}>a {formatDistancia(trabajo.distanciaKm)}</Text>
+            </View>
+          ) : (
+            <View style={[s.distancia, s.sinUbicacion]}>
+              <Ionicons name="help-circle-outline" size={12} color={colors.textMuted} />
+              <Text style={[s.distanciaTexto, s.sinUbicacionTexto]}>
+                Ubicación no especificada
+              </Text>
+            </View>
+          )
         )}
       </View>
 
@@ -87,6 +112,17 @@ const s = StyleSheet.create({
   },
   centro: { flex: 1, gap: 1 },
   derecha: { alignItems: 'flex-end', gap: spacing.xs },
+  distancia: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    alignSelf: 'flex-start', marginTop: 3,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm, paddingVertical: 2,
+  },
+  distanciaTexto: { fontSize: 11, fontWeight: '700', color: colors.primaryDark },
+  sinUbicacion: { backgroundColor: colors.surfaceAlt },
+  sinUbicacionTexto: { color: colors.textMuted, fontWeight: '600' },
+
   chip: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.pill },
   chipTexto: { fontSize: 11, fontWeight: '700' },
   fecha: { ...typography.caption, fontSize: 11 },

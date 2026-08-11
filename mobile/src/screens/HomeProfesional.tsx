@@ -54,7 +54,7 @@ export function HomeProfesional() {
               </Text>
             </View>
           }
-          renderItem={({ item }) => <TrabajoCard trabajo={item} verContraparte="cliente" />}
+          renderItem={({ item }) => <TrabajoCard trabajo={item} verContraparte="cliente" mostrarDistancia />}
         />
       )}
     </Pantalla>

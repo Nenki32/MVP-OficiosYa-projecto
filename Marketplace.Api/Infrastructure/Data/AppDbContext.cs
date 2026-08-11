@@ -101,18 +101,24 @@ public class AppDbContext : DbContext
             e.Property(t => t.Estado).HasMaxLength(20);
             e.Property(t => t.TipoPago).HasMaxLength(20);
 
-            // Coordenadas: sin esto EF mapea decimal(18,2) por defecto y redondea
-            // la posicion a 2 decimales (~1 km) antes de llegar a SQL Server.
-            e.Property(t => t.LatitudDestino).HasPrecision(10, 7);
-            e.Property(t => t.LongitudDestino).HasPrecision(10, 7);
+            // Coordenadas del punto de partida del profesional cuando viaja.
+            // Sin precision explicita EF mapea decimal(18,2) y redondea la
+            // posicion a ~1 km.
             e.Property(t => t.LatitudInicio).HasPrecision(10, 7);
             e.Property(t => t.LongitudInicio).HasPrecision(10, 7);
+
+            // Donde se realiza el trabajo. El indice GiST es lo que permite
+            // filtrar por radio sin recorrer la tabla entera.
+            e.Property(t => t.Ubicacion).HasColumnType("geography (point,4326)");
+            e.HasIndex(t => t.Ubicacion).HasMethod("gist");
 
             e.ToTable(t => t.HasCheckConstraint("CK_Trabajos_estado",
                 "estado IN ('pendiente', 'aceptado', 'viajando', 'en_progreso', 'completado', 'cancelado')"));
             e.ToTable(t => t.HasCheckConstraint("CK_Trabajos_tipo_pago",
                 "tipo_pago IN ('efectivo', 'tarjeta', 'transferencia')"));
-            e.HasIndex(t => new { t.Estado, t.LatitudDestino, t.LongitudDestino })
+            // El indice geografico lo cubre el GiST sobre ubicacion; este solo
+            // acota por estado, que es el filtro previo de toda busqueda.
+            e.HasIndex(t => t.Estado)
                 .HasFilter("estado IN ('pendiente', 'aceptado')");
             e.HasIndex(t => new { t.ClienteId, t.Estado });
             e.HasIndex(t => new { t.ProfesionalId, t.Estado });

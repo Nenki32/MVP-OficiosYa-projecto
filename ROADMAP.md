@@ -93,7 +93,87 @@ de permitir ofertar en rubros regulados.
 
 ---
 
-## Dónde retomar (última sesión: 2026-08-09)
+## Dónde retomar (última sesión: 2026-08-11)
+
+> Estado para retomar en otro chat o por otro agente. Lo de abajo, fechado
+> 2026-08-09, quedó desactualizado en varias partes.
+
+### Rama activa
+
+`feature/perfil-profesional` — sale de `master` tras el merge del PR #8.
+
+### Qué se completó en esta sesión
+
+**Perfil profesional (backend + app).** Antes un profesional era solo un usuario
+con `rol='profesional'`: no declaraba oficios ni zona.
+
+- `Usuarios` sumó `tipo_perfil` (persona/empresa, **ortogonal al rol**),
+  `razon_social`, `cuit`, `descripcion`, `ubicacion` (geography 4326 + GiST),
+  `radio_cobertura_km` y `disponible`.
+- Endpoints en `/api/profesionales/me/`: `perfil` (GET/PUT), `ubicacion` (PUT),
+  `servicios` (PUT).
+- El perfil devuelve `faltantes`: lista de textos con lo que falta completar.
+  Se calcula en el servidor para que app y web no se contradigan.
+- App: `app/profesional/{editar,rubros,zona}.tsx` y el tab de perfil como
+  centro del onboarding.
+
+**Geolocalización operativa.**
+- `Trabajos.latitud_destino/longitud_destino` → `ubicacion` geography, con
+  traspaso de datos en la migración.
+- El cliente publica capturando GPS (`app/solicitar.tsx`).
+- La lista del profesional filtra por **sus rubros** y **su radio**, calcula
+  distancia con PostGIS y ordena de más cerca a más lejos.
+- `TrabajoDto.distanciaKm`, visible en la tarjeta.
+
+**Seguridad.** RLS habilitado en las 9 tablas (ver sección de seguridad).
+
+### Reglas de negocio implementadas, para no reabrirlas
+
+- **Los trabajos propios del profesional se ven siempre**, sin importar rubro ni
+  radio: si tomó un trabajo y después movió su zona, sería absurdo que
+  desaparezca de su lista.
+- **Un trabajo sin coordenadas se muestra a todos los profesionales**, con la
+  leyenda "Ubicación no especificada". Si se filtrara, un cliente que niega el
+  permiso de ubicación publicaría en el vacío sin enterarse.
+- **Si el profesional no cargó ubicación o radio, no se filtra por cercanía.**
+  Mejor mostrar todo que una lista vacía sin explicación.
+- **Radios ofrecidos: 5, 10, 15 y 20 km.** La base admite 1–200 como cota de
+  cordura; la restricción a esos cuatro valores es decisión de producto.
+- **No se muestran coordenadas crudas en pantalla.** Se usa geocodificación
+  inversa del sistema operativo para mostrar barrio y ciudad, con respaldo
+  a un texto genérico si falla.
+
+### Lo que sigue, en orden sugerido
+
+1. **Detalle del trabajo y envío de presupuesto desde la app.** Hoy la lista del
+   profesional **no es tocable**: no puede abrir un trabajo ni presupuestar.
+   Es el mayor bloqueo funcional. El backend ya lo soporta
+   (`POST /api/trabajos/{id}/postularse`).
+2. **Verificación de matrículas.** Hoy cualquiera se marca como Gasista sin
+   credencial, y gasista es un oficio regulado. Es el diferenciador declarado
+   del producto y no existe. Implica: marcar qué rubros son regulados, estado de
+   verificación por profesional, bloqueo de oferta sin verificar, y circuito de
+   revisión (manual al principio).
+   **Ojo:** el mensaje "Tu perfil está completo" solo valida rubros, ubicación y
+   radio. No valida identidad ni matrícula. El texto induce a error.
+3. **Foto de perfil.** Necesita almacenamiento; Supabase Storage encaja.
+4. **Icono de notificaciones** en el inicio del profesional (el del cliente ya
+   lo tiene).
+5. **Agenda y disponibilidad horaria** (Bloque 4): sin esto el profesional no
+   puede organizarse y se le pasan los pendientes.
+6. **Suscripciones**, que reemplazan al modelo de comisiones descartado.
+
+### Pendientes técnicos conocidos
+
+- `Trabajos.latitud_inicio/longitud_inicio` siguen siendo `numeric` sueltos. Se
+  usan para el punto de partida del profesional al viajar y hoy nadie los lee.
+- El selector persona/empresa **no tiene pantalla**: el modelo lo soporta pero
+  se dejó fuera a propósito.
+- Los usuarios de prueba tienen contraseña `Test1234!`.
+
+---
+
+## Dónde retomar (sesión anterior: 2026-08-09)
 
 **La app mobile funciona en dispositivo real**, contra el backend local y
 Supabase. Login, inicio del cliente con selector de rubros, alta de petición,

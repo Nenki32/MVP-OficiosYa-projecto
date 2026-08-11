@@ -8,6 +8,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { api } from '../src/api/client'
 import { iconoDeServicio } from '../src/api/servicios'
 import { Pantalla } from '../src/components/Pantalla'
+import { describirUbicacion, useUbicacion, type Coordenadas } from '../src/hooks/useUbicacion'
 import { colors, radius, spacing, typography } from '../src/theme'
 
 const TIPOS_PAGO = [
@@ -23,13 +24,24 @@ export default function Solicitar() {
     servicioNombre: string
   }>()
 
+  const { obtener, obteniendo, error: errorGps } = useUbicacion()
+
   const [descripcion, setDescripcion] = useState('')
   const [direccion, setDireccion] = useState('')
   const [tipoPago, setTipoPago] = useState('efectivo')
+  const [coords, setCoords] = useState<Coordenadas | null>(null)
+  const [zona, setZona] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [enviando, setEnviando] = useState(false)
 
   const puedeEnviar = direccion.trim().length > 0 && !enviando
+
+  const ubicarme = async () => {
+    const c = await obtener()
+    if (!c) return
+    setCoords(c)
+    setZona(await describirUbicacion(c.latitud, c.longitud))
+  }
 
   const enviar = async () => {
     if (!puedeEnviar) return
@@ -41,8 +53,10 @@ export default function Solicitar() {
         descripcion: descripcion.trim() || null,
         direccionDestino: direccion.trim(),
         tipoPago,
-        // TODO: las coordenadas salen del mapa cuando este el Bloque 3.
-        // Hoy la direccion es texto libre.
+        // Sin coordenadas el pedido se publica igual, pero no aparece en las
+        // busquedas por cercania de los profesionales.
+        latitudDestino: coords?.latitud ?? null,
+        longitudDestino: coords?.longitud ?? null,
       })
       router.replace('/mis-peticiones')
     } catch (e: any) {
@@ -77,6 +91,50 @@ export default function Solicitar() {
             </View>
             <Text style={typography.bodyStrong}>{servicioNombre}</Text>
           </View>
+
+          {/* Ubicacion: es lo que permite que los profesionales cercanos
+              encuentren el pedido. Sin esto no aparece en sus busquedas. */}
+          <View style={[s.ubicacion, coords && s.ubicacionOk]}>
+            <View style={s.ubicacionFila}>
+              <Ionicons
+                name={coords ? 'location' : 'location-outline'}
+                size={22}
+                color={coords ? colors.primaryDark : colors.textMuted}
+              />
+              <View style={s.flex}>
+                <Text style={typography.bodyStrong}>
+                  {coords ? 'Ubicación detectada' : 'Ubicación del trabajo'}
+                </Text>
+                <Text style={typography.caption}>
+                  {coords
+                    ? (zona ?? 'Lista para publicar')
+                    : 'Sin esto, los profesionales cercanos no van a encontrarte'}
+                </Text>
+              </View>
+            </View>
+
+            <Pressable
+              onPress={ubicarme}
+              disabled={obteniendo}
+              style={({ pressed }) => [s.ubicarme, pressed && { opacity: 0.75 }]}
+            >
+              {obteniendo
+                ? <ActivityIndicator color={colors.primaryDark} />
+                : <>
+                    <Ionicons name="navigate" size={18} color={colors.primaryDark} />
+                    <Text style={s.ubicarmeTexto}>
+                      {coords ? 'Actualizar ubicación' : 'Usar mi ubicación actual'}
+                    </Text>
+                  </>}
+            </Pressable>
+          </View>
+
+          {errorGps !== '' && (
+            <View style={s.aviso}>
+              <Ionicons name="warning-outline" size={18} color={colors.warning} />
+              <Text style={s.avisoTexto}>{errorGps}</Text>
+            </View>
+          )}
 
           <View style={s.campo}>
             <Text style={s.label}>Dirección *</Text>
@@ -169,6 +227,29 @@ const s = StyleSheet.create({
     backgroundColor: colors.surface,
     alignItems: 'center', justifyContent: 'center',
   },
+
+
+  ubicacion: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md, borderWidth: 1, borderColor: colors.border,
+    padding: spacing.md, gap: spacing.md,
+  },
+  ubicacionOk: { borderColor: colors.primary },
+  ubicacionFila: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  ubicarme: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.md, paddingVertical: spacing.md,
+  },
+  ubicarmeTexto: { color: colors.primaryDark, fontSize: 14, fontWeight: '700' },
+
+  aviso: {
+    flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start',
+    backgroundColor: '#FFF7E6', borderColor: colors.warning, borderWidth: 1,
+    borderRadius: radius.md, padding: spacing.md,
+  },
+  avisoTexto: { flex: 1, color: '#8A5A00', fontSize: 13 },
 
   campo: { gap: spacing.xs },
   label: { ...typography.caption, fontWeight: '600' },

@@ -1,3 +1,4 @@
+using NetTopologySuite.Geometries;
 using Marketplace.Api.Core.Interfaces;
 using Marketplace.Api.Core.Models;
 using Marketplace.Api.Delivery.DTOs.Trabajos;
@@ -37,8 +38,7 @@ public class TrabajoUseCase : ITrabajoService
             Estado = "pendiente",
             Descripcion = request.Descripcion,
             TipoPago = request.TipoPago,
-            LatitudDestino = request.LatitudDestino,
-            LongitudDestino = request.LongitudDestino,
+            Ubicacion = CrearPunto(request.LatitudDestino, request.LongitudDestino),
             DireccionDestino = request.DireccionDestino
         };
 
@@ -48,32 +48,52 @@ public class TrabajoUseCase : ITrabajoService
 
     public async Task<List<TrabajoDto>> ListarAsync(int usuarioId, string rol)
     {
-        List<Trabajo> trabajos;
-
-        if (rol == "cliente")
-            trabajos = await _trabajoRepo.GetByClienteAsync(usuarioId);
-        else if (rol == "profesional")
-            trabajos = await _trabajoRepo.GetByProfesionalAsync(usuarioId);
-        else
-            trabajos = await _trabajoRepo.GetPendientesAsync();
-
-        return trabajos.Select(t => new TrabajoDto
+        // El profesional recibe ademas la distancia a cada trabajo, y solo los
+        // que caen dentro de su radio y sus rubros.
+        if (rol == "profesional")
         {
-            Id = t.Id,
-            ClienteId = t.ClienteId,
-            ClienteNombre = t.Cliente?.Nombre ?? "",
-            ProfesionalId = t.ProfesionalId,
-            ProfesionalNombre = t.Profesional?.Nombre,
-            ServicioId = t.ServicioId,
-            ServicioNombre = t.Servicio?.Nombre ?? "",
-            Estado = t.Estado,
-            TipoPago = t.TipoPago,
-            LatitudDestino = t.LatitudDestino,
-            LongitudDestino = t.LongitudDestino,
-            DireccionDestino = t.DireccionDestino,
-            CreadoEn = t.CreadoEn
-        }).ToList();
+            var conDistancia = await _trabajoRepo.GetParaProfesionalAsync(usuarioId);
+            return conDistancia.Select(x => MapToLista(
+                x.Trabajo,
+                // Se redondea a un decimal: mostrar "1.6 km" es util,
+                // "1.6432871 km" es ruido.
+                x.DistanciaMetros is null ? null : Math.Round(x.DistanciaMetros.Value / 1000, 1)))
+                .ToList();
+        }
+
+        var trabajos = rol == "cliente"
+            ? await _trabajoRepo.GetByClienteAsync(usuarioId)
+            : await _trabajoRepo.GetPendientesAsync();
+
+        return trabajos.Select(t => MapToLista(t, null)).ToList();
     }
+
+    private static TrabajoDto MapToLista(Trabajo t, double? distanciaKm) => new()
+    {
+        Id = t.Id,
+        ClienteId = t.ClienteId,
+        ClienteNombre = t.Cliente?.Nombre ?? "",
+        ProfesionalId = t.ProfesionalId,
+        ProfesionalNombre = t.Profesional?.Nombre,
+        ServicioId = t.ServicioId,
+        ServicioNombre = t.Servicio?.Nombre ?? "",
+        Estado = t.Estado,
+        TipoPago = t.TipoPago,
+        LatitudDestino = t.Ubicacion?.Y,
+        LongitudDestino = t.Ubicacion?.X,
+        DireccionDestino = t.DireccionDestino,
+        DistanciaKm = distanciaKm,
+        CreadoEn = t.CreadoEn
+    };
+
+    /// <summary>
+    /// Arma el punto geografico. OJO con el orden: X es longitud e Y latitud.
+    /// Invertirlos compila igual y ubica el trabajo en otro continente.
+    /// </summary>
+    private static Point? CrearPunto(double? latitud, double? longitud) =>
+        latitud is null || longitud is null
+            ? null
+            : new Point(longitud.Value, latitud.Value) { SRID = 4326 };
 
     public async Task<TrabajoDetalleDto> ObtenerAsync(int id)
     {
@@ -223,8 +243,8 @@ public class TrabajoUseCase : ITrabajoService
         Estado = t.Estado,
         Descripcion = t.Descripcion,
         TipoPago = t.TipoPago,
-        LatitudDestino = t.LatitudDestino,
-        LongitudDestino = t.LongitudDestino,
+        LatitudDestino = t.Ubicacion?.Y,
+        LongitudDestino = t.Ubicacion?.X,
         DireccionDestino = t.DireccionDestino,
         LatitudInicio = t.LatitudInicio,
         LongitudInicio = t.LongitudInicio,
