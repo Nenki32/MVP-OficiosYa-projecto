@@ -8,7 +8,6 @@ del hogar con profesionales certificados de su zona.**
 ![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?logo=supabase&logoColor=white)
 ![React Native](https://img.shields.io/badge/React%20Native-Expo%2054-000020?logo=expo&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript&logoColor=white)
-![Estado](https://img.shields.io/badge/estado-MVP%20en%20desarrollo-orange)
 
 ---
 
@@ -68,32 +67,6 @@ puede reseñar un trabajo que no ocurrió.
 |---|---|
 | **Suscripción** | Tarifa mensual o anual para acceder a los trabajos publicados y enviar presupuestos, ilimitados o según el plan |
 | **Comisión por contacto** | En ciertos planes, un importe fijo por establecer contacto directo con un cliente |
-
-> **Nota de implementación:** el código actual todavía tiene un modelo de
-> comisión del 15 % por trabajo completado, con cuenta corriente y estado
-> deudor. **Ese modelo quedó descartado** y hay que reemplazarlo por
-> suscripciones. Ver el ROADMAP.
-
----
-
-## Estado
-
-MVP en desarrollo activo. El plan detallado, con prioridades, decisiones tomadas
-y hallazgos de seguridad, está en **[ROADMAP.md](ROADMAP.md)**.
-
-| Componente | Estado |
-|---|---|
-| API REST (.NET 9) | ✅ Funcionando |
-| Modelo de dominio y flujo de trabajos | ✅ Funcionando |
-| App mobile (Expo) | 🚧 Login, inicio, alta de petición y listados |
-| Frontend web (React) | ✅ Banco de pruebas — no es el producto |
-| Migración a PostgreSQL + PostGIS | ✅ Aplicada |
-| Geolocalización por GPS | ⏳ Pendiente |
-| Verificación de matrículas | ⏳ Pendiente |
-| Suscripciones | ⏳ Pendiente — reemplaza al modelo de comisiones |
-
-> El producto final es la **aplicación mobile**. La web existe para validar
-> arquitectura y funcionalidad; el diseño visual se hace una sola vez, en Expo.
 
 ---
 
@@ -272,9 +245,6 @@ como públicos.
 
 ### Cuenta corriente · rol `profesional`
 
-> Estos endpoints pertenecen al modelo de comisiones, **que fue descartado**.
-> Se reemplazan por suscripciones. Ver ROADMAP.
-
 | Método | Ruta |
 |---|---|
 | `GET` | `/api/cuenta-corriente/saldo` · `/movimientos` |
@@ -306,11 +276,3 @@ como públicos.
 | `fix/*` | Correcciones |
 
 Los merges a `master` se hacen vía Pull Request.
-
----
-
-## Documentación
-
-- **[ROADMAP.md](ROADMAP.md)** — plan de trabajo, reglas de negocio, decisiones,
-  estado de seguridad y riesgos identificados.
-- **[DESPLIEGUE.md](DESPLIEGUE.md)** — guía de despliegue de la API en Render.
