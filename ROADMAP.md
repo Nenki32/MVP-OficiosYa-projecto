@@ -143,6 +143,35 @@ con `rol='profesional'`: no declaraba oficios ni zona.
   inversa del sistema operativo para mostrar barrio y ciudad, con respaldo
   a un texto genérico si falla.
 
+### Detectado probando el 2026-08-11 — arreglar primero
+
+**1. El profesional no puede aceptar un trabajo desde la app.**
+Se creó una petición para el 12 a las 9 y el profesional no pudo tomarla. La
+lista **no es tocable**: no hay detalle ni acción. Es el mismo bloqueo del punto
+1 de más abajo y confirma que es lo más urgente.
+Al verificarlo, comprobar además si el filtrado por rubro no lo está ocultando:
+si el rubro del trabajo no está entre los del profesional, no aparece.
+
+**2. "Ubicación no especificada" confunde cuando sí hay dirección.**
+La etiqueta se muestra cuando el trabajo no tiene **coordenadas**, pero el
+cliente pudo haber escrito la dirección igual. Son dos cosas distintas y la
+pantalla las mezcla.
+Opciones: cambiar el texto por algo como "Sin ubicación en el mapa", o
+geocodificar la dirección escrita (`Location.geocodeAsync` de expo-location usa
+el geocodificador del sistema, sin claves) para que tenga coordenadas aunque no
+se otorgue el permiso de GPS. **La segunda es mejor**: resuelve el problema en
+vez de renombrarlo.
+
+**3. El cliente no puede editar una petición publicada.**
+Si se equivocó en la dirección, la fecha o la descripción, no hay forma de
+corregirla. Hoy solo puede cancelar y volver a publicar.
+Definir hasta cuándo se permite editar: mientras esté `pendiente` es seguro;
+con un profesional ya asignado habría que avisarle del cambio.
+
+**4. La franja de "trabajos sin fecha" de la agenda no tiene acción.**
+Es solo texto. Debería poder tocarse para abrir el trabajo y asignarle una
+fecha, que es justamente para lo que está ahí.
+
 ### Lo que sigue, en orden sugerido
 
 1. **Detalle del trabajo y envío de presupuesto desde la app.** Hoy la lista del
