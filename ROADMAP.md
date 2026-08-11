@@ -1,4 +1,92 @@
-# ROADMAP — Encoya (Marketplace de servicios del hogar)
+# ROADMAP — OficiosYa (Marketplace de servicios del hogar)
+
+## ⚠️ Cambio de reglas de negocio (2026-08-10)
+
+El producto pasó de **cobrar comisión por trabajo** a **cobrar suscripción al
+profesional**. Esto invalida código que hoy funciona. Leer esta sección antes de
+tocar nada relacionado con pagos.
+
+### Modelo nuevo
+
+**El cliente no paga nunca.** Los ingresos salen del lado profesional:
+
+| Vía | Cómo funciona |
+|---|---|
+| **Suscripción mensual/anual** | Acceso a los trabajos publicados y envío de presupuestos, ilimitados o según plan |
+| **Comisión por contacto (lead)** | En ciertos planes, importe fijo por establecer contacto directo con un cliente |
+
+### Qué queda obsoleto
+
+Esto **no es trabajo pendiente: es código escrito que ahora está mal.**
+
+| Elemento | Estado |
+|---|---|
+| `CuentaCorriente` (ledger de deudas) | Sin sentido: no hay comisión por trabajo |
+| `Pagos.comision` y el 15 % en `CompletarAsync` | A eliminar |
+| `EstadoUsuario.Deudor` | Sin sentido; se reemplaza por estado de suscripción |
+| `CuentaCorrienteUseCase` y sus endpoints | A reemplazar |
+| Pantalla "Mi saldo" (web) | A reemplazar por "Mi suscripción" |
+| **Bloque 4.5 completo** (modelo de cobros) | **Descartado.** Se rediseña |
+
+> Ironía útil: el ledger append-only está bien construido y sirve igual para
+> registrar movimientos de suscripción. La estructura se aprovecha; lo que
+> cambia es qué significa cada asiento.
+
+### Qué hay que construir
+
+- [ ] **`Suscripciones`**: plan, precio, vigencia (desde/hasta), estado, medio de pago
+- [ ] **`Planes`**: nombre, precio mensual/anual, límite de presupuestos, si incluye rubros regulados
+- [ ] Bloqueo de envío de presupuestos si la suscripción está vencida
+- [ ] Integración de cobro recurrente (Mercado Pago admite suscripciones)
+- [ ] Migración: dar de baja `CuentaCorriente` sin perder el historial
+
+### Cambios en el flujo del trabajo
+
+- [ ] **El cliente publica con presupuesto estimado y plazo.** `Trabajos` necesita
+      `presupuesto_estimado` y `plazo_deseado`. Hoy no existen.
+- [ ] **Ubicación aproximada al publicar**, exacta recién al asignar
+      (ya diseñado en la sección de revelación por etapas).
+- [ ] **Doble confirmación de trabajo terminado.** Hoy el profesional marca
+      "completado" y listo. Ahora hacen falta dos confirmaciones:
+      - Nuevo estado `pendiente_confirmacion` entre `en_progreso` y `completado`
+      - Campos `confirmado_cliente` y `confirmado_profesional`
+      - `completado` solo cuando ambos confirmaron
+- [ ] **La reseña se habilita recién con la doble confirmación.** Es lo que hace
+      que las reseñas sean confiables: no se puede reseñar un trabajo que no
+      ocurrió. Puntuación 1–5 estrellas + comentario sobre cómo resolvió.
+
+### Empresas, no solo personas
+
+El modelo menciona **"perfil de la empresa"** además del perfil del profesional.
+Hoy `Usuarios` solo contempla personas físicas.
+
+- [ ] Decidir: ¿`Empresas` como entidad propia con profesionales asociados, o
+      un tipo de perfil dentro de `Usuarios`?
+- [ ] Una empresa con varios operarios cambia el modelo de asignación y de
+      reputación (¿la reseña es de la empresa o del operario que fue?)
+
+### Verificación de matrículas — ahora es requisito, no mejora
+
+Antes figuraba como hallazgo de seguridad. Con el modelo nuevo pasa a ser un
+**factor central del producto**: la plataforma verifica credenciales **antes**
+de permitir ofertar en rubros regulados.
+
+- [ ] Marcar qué rubros son regulados en el catálogo de `Servicios`
+- [ ] Estado de verificación por profesional: pendiente / verificado / rechazado
+- [ ] Bloquear el envío de presupuestos en rubros regulados sin verificación
+- [ ] Circuito de revisión (manual al principio)
+
+### GPS en lugar de coordenadas precargadas
+
+- [ ] Pedir permiso de ubicación en la app, con explicación de para qué se usa
+- [ ] **Si el usuario lo niega, la búsqueda por cercanía no funciona** — hay que
+      degradar con elegancia: permitir ingresar la zona a mano o mostrar el aviso
+- [ ] **No hace falta una tabla de localidades con coordenadas precargadas.**
+      La ubicación sale del dispositivo. Simplifica el modelo de datos.
+
+---
+
+## ROADMAP original
 
 > Documento de retomada. Si volvés al proyecto después de un parate, **empezá por el Bloque 0**.
 > Última actualización: 2026-08-09
@@ -501,7 +589,18 @@ Es un argumento más para la migración del Bloque 2.
 > teléfonos implica tratar datos personales. En Argentina aplica la Ley 25.326.
 > Revisar antes de salir a producción, no después.
 
-## Bloque 4.5 — Modelo de cobros y comisiones (decidir antes de tener usuarios reales)
+## ~~Bloque 4.5 — Modelo de cobros y comisiones~~ ❌ DESCARTADO (2026-08-10)
+
+> **Este bloque ya no aplica.** Se diseñó para un modelo de comisión por trabajo
+> que fue reemplazado por suscripciones al profesional. Ver la sección "Cambio de
+> reglas de negocio" al inicio del documento.
+>
+> Se conserva por dos razones: el análisis de *quién recibe el dinero primero*
+> sigue siendo válido si algún día se agrega cobro dentro de la app, y documenta
+> por qué se descartó.
+
+<details>
+<summary>Contenido original (obsoleto)</summary>
 
 Hoy la plataforma **no procesa ningún pago**: `tipo_pago` es solo una etiqueta. Eso
 define todo lo demás.
@@ -552,6 +651,8 @@ define todo lo demás.
 
 > **Ojo:** cobrarle al cliente y liquidarle al profesional significa manejar plata de
 > terceros. Tiene implicancias fiscales y regulatorias. Consultar antes de operar.
+
+</details>
 
 ## Bloque 5 — Tiempo real (~3 días)
 

@@ -1,13 +1,12 @@
-# EncoYá
+# OficiosYa
 
-**Marketplace de servicios del hogar con geolocalización.** Conecta a quien tiene un
-problema en su casa con el profesional matriculado más cercano, sin pasar por
-Marketplace de Facebook ni por clasificados.
+**Plataforma para conectar a quien necesita una reforma, reparación o mantenimiento
+del hogar con profesionales certificados de su zona.**
 
 ![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?logo=supabase&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![React Native](https://img.shields.io/badge/React%20Native-Expo%2054-000020?logo=expo&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript&logoColor=white)
 ![Estado](https://img.shields.io/badge/estado-MVP%20en%20desarrollo-orange)
 
@@ -15,35 +14,86 @@ Marketplace de Facebook ni por clasificados.
 
 ## El problema
 
-Cuando se te rompe el termotanque un domingo, tus opciones son preguntar en el grupo
-del barrio, revolver Marketplace de Facebook o llamar a un número escrito en un poste.
-Ninguna te dice si la persona está matriculada, si trabajó bien antes, ni cuánto va a salir.
+Cuando se rompe el termotanque un domingo, las opciones son preguntar en el grupo
+del barrio, revolver Marketplace de Facebook o llamar a un número escrito en un
+poste. Ninguna dice si la persona está matriculada, si trabajó bien antes, ni
+cuánto va a salir.
 
-EncoYá apunta a las dos cosas que esas alternativas no pueden dar:
+OficiosYa apunta a las dos cosas que esas alternativas no pueden dar:
 
-- **Credencial verificable** — el nivel *premium* exige número de matrícula. Ser gasista
-  matriculado es una categoría legal, no una autopercepción.
-- **Reseñas que no se pueden inventar** — una reseña solo existe si hubo un trabajo
-  completado en la plataforma. Es prueba de una transacción real, no texto libre.
+- **Credencial verificada** — en Argentina hay oficios que exigen matrícula por
+  ley. La plataforma **verifica las credenciales antes** de permitir ofertar en
+  rubros regulados. No es una declaración del profesional: es un control previo.
+- **Reseñas que no se pueden inventar** — una reseña solo existe si hubo un
+  trabajo real, confirmado por ambas partes. Es prueba de una transacción, no
+  texto libre.
+
+---
+
+## Cómo funciona
+
+### Para el cliente — gratis, siempre
+
+1. **Publica el trabajo** describiendo qué necesita, la **zona aproximada**, un
+   presupuesto estimado y el plazo deseado.
+2. **Recibe presupuestos** de profesionales de su área.
+3. **Elige con información**: compara precio, perfil del profesional o de la
+   empresa, y sobre todo las valoraciones de otros usuarios.
+
+### Para el profesional — el lado que paga
+
+1. **Canal continuo de clientes**, sin invertir en publicidad propia.
+2. **Filtrado por radio de acción**: ve solo los encargos cercanos a su zona y
+   elige a cuáles presupuestar.
+3. **Reputación digital**: acumular buenas opiniones aumenta su visibilidad y
+   su probabilidad de ser contratado.
+
+### Cierre del trabajo
+
+Terminada la tarea, **cliente y profesional confirman** que el trabajo se
+completó. Recién con esa doble confirmación el cliente accede a dejar su
+reseña: puntuación de 1 a 5 estrellas y un comentario sobre cómo resolvió el
+profesional.
+
+Esa doble confirmación es lo que hace que las reseñas sean confiables: no se
+puede reseñar un trabajo que no ocurrió.
+
+---
+
+## Modelo de negocio
+
+**El cliente no paga nunca.** Los ingresos vienen del lado profesional:
+
+| Vía | Cómo funciona |
+|---|---|
+| **Suscripción** | Tarifa mensual o anual para acceder a los trabajos publicados y enviar presupuestos, ilimitados o según el plan |
+| **Comisión por contacto** | En ciertos planes, un importe fijo por establecer contacto directo con un cliente |
+
+> **Nota de implementación:** el código actual todavía tiene un modelo de
+> comisión del 15 % por trabajo completado, con cuenta corriente y estado
+> deudor. **Ese modelo quedó descartado** y hay que reemplazarlo por
+> suscripciones. Ver el ROADMAP.
+
+---
 
 ## Estado
 
-MVP en desarrollo activo. El backend y el flujo de negocio están funcionando; la capa de
-geolocalización y la app mobile están en construcción. El plan de trabajo detallado,
-con prioridades y decisiones tomadas, vive en **[ROADMAP.md](ROADMAP.md)**.
+MVP en desarrollo activo. El plan detallado, con prioridades, decisiones tomadas
+y hallazgos de seguridad, está en **[ROADMAP.md](ROADMAP.md)**.
 
 | Componente | Estado |
 |---|---|
 | API REST (.NET 9) | ✅ Funcionando |
-| Modelo de dominio y ledger de comisiones | ✅ Funcionando |
-| Frontend web (React) | ✅ Funcionando — banco de pruebas, no producto final |
-| Migración a PostgreSQL + PostGIS | 🚧 En curso |
-| Búsqueda por proximidad | ⏳ Pendiente |
-| Agenda y turnos | ⏳ Pendiente |
-| App mobile (Expo) | ⏳ Pendiente — **este es el producto real** |
+| Modelo de dominio y flujo de trabajos | ✅ Funcionando |
+| App mobile (Expo) | 🚧 Login, inicio, alta de petición y listados |
+| Frontend web (React) | ✅ Banco de pruebas — no es el producto |
+| Migración a PostgreSQL + PostGIS | ✅ Aplicada |
+| Geolocalización por GPS | ⏳ Pendiente |
+| Verificación de matrículas | ⏳ Pendiente |
+| Suscripciones | ⏳ Pendiente — reemplaza al modelo de comisiones |
 
-> La web existe para validar arquitectura y funcionalidad. El producto final es una
-> aplicación mobile; el diseño visual se hace una sola vez, ahí.
+> El producto final es la **aplicación mobile**. La web existe para validar
+> arquitectura y funcionalidad; el diseño visual se hace una sola vez, en Expo.
 
 ---
 
@@ -56,13 +106,13 @@ con prioridades y decisiones tomadas, vive en **[ROADMAP.md](ROADMAP.md)**.
 | Base de datos | PostgreSQL 17 (Supabase) · PostGIS · btree_gist |
 | Autenticación | JWT Bearer · BCrypt |
 | Documentación | Swagger / OpenAPI |
+| Mobile | React Native · Expo SDK 54 · expo-router |
 | Frontend web | React 19 · TypeScript · Vite · Tailwind CSS 4 |
-| Mobile *(previsto)* | React Native · Expo |
 
 ## Arquitectura
 
-Monolito modular en **Clean Architecture**. Las dependencias apuntan hacia adentro:
-`Delivery` y `Infrastructure` conocen a `Core`, nunca al revés.
+Monolito modular en **Clean Architecture**. Las dependencias apuntan hacia
+adentro: `Delivery` e `Infrastructure` conocen a `Core`, nunca al revés.
 
 ```
 Marketplace.Api/
@@ -77,45 +127,28 @@ Marketplace.Api/
 │   └── Middleware/              Manejo centralizado de errores
 │
 ├── Infrastructure/              Detalles técnicos
-│   ├── Data/                    DbContext, repositorios, unit of work
+│   ├── Data/                    DbContext, repositorios, migraciones
 │   └── Security/                JWT, hashing
 │
 └── Config/                      Composition root (Program.cs)
+
+mobile/                          App Expo (el producto)
+├── app/                         Rutas — expo-router
+└── src/
+    ├── api/                     Cliente HTTP
+    ├── auth/                    Sesión
+    ├── components/              Piezas reutilizables
+    └── theme.ts                 Sistema de diseño
 ```
 
 ### Decisiones de diseño
 
-- **`IUnitOfWork`** agrupa escrituras de varios repositorios en una transacción. Sin
-  esto, completar un trabajo podía dejar una comisión adeudada sin el pago que la justifica.
-- **Ledger contable en vez de un campo de saldo.** `CuentaCorriente` es append-only:
-  cada movimiento guarda monto y saldo posterior. El saldo es auditable y reconstruible.
-- **Máquina de estados explícita** para los trabajos, con transiciones validadas en el
-  caso de uso, no dispersas por los controladores.
-
-## Modelo de datos
-
-| Tabla | Rol |
-|---|---|
-| `Usuarios` | Clientes, profesionales y admin. Nivel *standard* (DNI) o *premium* (matrícula) |
-| `Servicios` | Catálogo de rubros: gasista, electricista, plomero, etc. |
-| `ProfesionalServicios` | Relación M:N — en qué rubros trabaja cada profesional |
-| `Trabajos` | Solicitudes, con coordenadas y máquina de estados |
-| `Postulaciones` | Profesionales que se ofrecen a un trabajo, con presupuesto |
-| `Pagos` | Registro contable por trabajo, con comisión del 15 % |
-| `CuentaCorriente` | Ledger auditable de deudas de profesionales |
-| `Resenias` | Puntuación 1–5, única por trabajo completado |
-
-**Ciclo de vida de un trabajo:**
-
-```
-pendiente ──> aceptado ──> viajando ──> en_progreso ──> completado
-    │             │            │             │
-    └─────────────┴────────────┴─────────────┴──────> cancelado
-```
-
-**Comisiones.** Al completar un trabajo pagado en efectivo, el sistema registra el cobro
-íntegro y genera un asiento negativo del 15 % en la cuenta corriente del profesional.
-El saldo queda deudor hasta que lo salda. Todo dentro de una misma transacción.
+- **`IUnitOfWork`** agrupa escrituras de varios repositorios en una transacción.
+- **Máquina de estados explícita** para los trabajos, validada en el caso de uso.
+- **Sistema de diseño centralizado** en `mobile/src/theme.ts`: ningún componente
+  define colores ni espaciados sueltos.
+- **Sin tabla de coordenadas precargadas**: la ubicación sale del GPS del
+  dispositivo, con permiso explícito del usuario.
 
 ---
 
@@ -126,10 +159,11 @@ El saldo queda deudor hasta que lo salda. Todo dentro de una misma transacción.
 - .NET SDK 9.0+
 - Node.js 20+
 - Una cuenta de [Supabase](https://supabase.com) (el plan gratuito alcanza)
+- **Expo Go** en el celular (SDK 54)
 
 ### 1. Base de datos
 
-Creá un proyecto en Supabase y habilitá las extensiones necesarias desde el SQL Editor:
+Crear un proyecto en Supabase y habilitar las extensiones:
 
 ```sql
 create extension if not exists postgis;     -- búsqueda por proximidad
@@ -138,18 +172,18 @@ create extension if not exists btree_gist;  -- turnos sin solapamiento
 
 ### 2. Variables de entorno
 
-Copiá `Marketplace.Api/.env.example` a `Marketplace.Api/.env` y completalo.
-
-La connection string se saca de **Project Settings → Database → Connection string**,
-usando el **Session pooler** (puerto 5432). Convertila al formato clave-valor que
-espera Npgsql:
+Copiar `Marketplace.Api/.env.example` a `Marketplace.Api/.env` y completarlo.
+La connection string sale de **Project Settings → Database → Connection string**,
+usando el **Session pooler** (puerto 5432):
 
 ```env
-DB_CONNECTION=Host=aws-0-<region>.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.<ref>;Password=<password>;SSL Mode=Require;Trust Server Certificate=true
+DB_CONNECTION='Host=aws-0-<region>.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.<ref>;Password=<password>;SSL Mode=Require;Trust Server Certificate=true'
 ```
 
-> ⚠️ No uses el *Transaction pooler* (puerto 6543): rompe los prepared statements de Npgsql.
-> `.env` está en `.gitignore` — nunca lo commitees.
+> ⚠️ No usar el *Transaction pooler* (6543): rompe los prepared statements de Npgsql.
+> Envolver todo el valor en comillas simples y **no** poner comillas en la password:
+> DotNetEnv falla si hay comillas dentro del valor.
+> `.env` está en `.gitignore` — nunca commitearlo.
 
 ### 3. Esquema
 
@@ -157,36 +191,47 @@ DB_CONNECTION=Host=aws-0-<region>.pooler.supabase.com;Port=5432;Database=postgre
 dotnet ef database update --project Marketplace.Api
 ```
 
-> **El esquema lo maneja EF Core, no el CLI de Supabase.** El registro de migraciones
-> vive en la tabla `__EFMigrationsHistory`, por eso el dashboard de Supabase muestra
-> su sección de migraciones vacía: es lo esperado.
+> **El esquema lo maneja EF Core, no el CLI de Supabase.** El registro está en la
+> tabla `__EFMigrationsHistory`, por eso el dashboard de Supabase muestra su
+> sección de migraciones vacía: es lo esperado.
 >
-> **No modifiques tablas a mano desde el SQL Editor.** El snapshot de EF quedaría
-> desincronizado y la próxima migración fallaría o intentaría deshacer el cambio.
-> Todo cambio de esquema pasa por `dotnet ef migrations add`. Las extensiones
-> (`postgis`, `btree_gist`) son la excepción: viven fuera del modelo.
+> **No modificar tablas a mano desde el SQL Editor.** El snapshot de EF quedaría
+> desincronizado. Todo cambio pasa por `dotnet ef migrations add`.
 
 ### 4. Backend
 
 ```bash
-dotnet run --project Marketplace.Api
+dotnet run --project Marketplace.Api --urls http://0.0.0.0:5100
 ```
 
+Escucha en `0.0.0.0` para que el celular lo alcance en la red local.
 Swagger queda en http://localhost:5100/swagger
 
-### 5. Frontend
+### 5. App mobile
+
+```bash
+cd mobile
+npx expo start
+```
+
+Escanear el QR con Expo Go.
+
+> La IP de la PC está en `mobile/app.json` → `expo.extra.apiUrl`. Si cambia, hay
+> que actualizarla. **Cambiar `app.json` exige reiniciar Metro y cerrar Expo Go
+> por completo**: recargar no alcanza.
+
+### 6. Frontend web (opcional)
 
 ```bash
 cd frontend && npm install && npm run dev
 ```
 
-Disponible en http://localhost:5173 (proxea `/api` al backend).
-
 ---
 
 ## API
 
-Todos los endpoints requieren `Authorization: Bearer <token>` salvo los marcados como públicos.
+Todos los endpoints requieren `Authorization: Bearer <token>` salvo los marcados
+como públicos.
 
 ### Autenticación
 
@@ -218,20 +263,22 @@ Todos los endpoints requieren `Authorization: Bearer <token>` salvo los marcados
 | `GET` | `/api/trabajos/{id}/postulaciones` | cliente dueño / admin |
 | `POST` | `/api/trabajos/{id}/asignar/{profesionalId}` | cliente dueño |
 
-### Cuenta corriente · rol `profesional`
-
-| Método | Ruta | Descripción |
-|---|---|---|
-| `GET` | `/api/cuenta-corriente/saldo` | Saldo actual |
-| `GET` | `/api/cuenta-corriente/movimientos` | Historial del ledger |
-| `POST` | `/api/cuenta-corriente/pagar` | Saldar deuda |
-
 ### Reseñas
 
 | Método | Ruta | Descripción |
 |---|---|---|
 | `POST` | `/api/trabajos/{trabajoId}/resenia` | Calificar un trabajo completado |
 | `GET` | `/api/profesionales/{profesionalId}/resenias` | Reseñas de un profesional |
+
+### Cuenta corriente · rol `profesional`
+
+> Estos endpoints pertenecen al modelo de comisiones, **que fue descartado**.
+> Se reemplazan por suscripciones. Ver ROADMAP.
+
+| Método | Ruta |
+|---|---|
+| `GET` | `/api/cuenta-corriente/saldo` · `/movimientos` |
+| `POST` | `/api/cuenta-corriente/pagar` |
 
 ### Administración · rol `admin`
 
@@ -242,23 +289,21 @@ Todos los endpoints requieren `Authorization: Bearer <token>` salvo los marcados
 | `GET` | `/api/admin/trabajos` · `/api/admin/trabajos/{id}` |
 | `GET` | `/api/admin/resenias` |
 
+### Operativo
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `GET` | `/health` | Chequeo de salud · **público**, no toca la base |
+
 ---
-
-## Escalabilidad
-
-**Ahora.** La API es stateless (JWT), así que escala horizontalmente detrás de un
-balanceador. Los índices cubren las consultas de dashboard y ledger.
-
-**Cuando haga falta.** PostGIS con índices GiST para la búsqueda por radio; Supabase
-Realtime para el seguimiento en vivo; caché de catálogo y sesiones; separación del
-módulo de pagos si el volumen lo justifica.
 
 ## Flujo de trabajo
 
 | Rama | Propósito |
 |---|---|
 | `master` | Producción — rama por defecto, solo código estable |
-| `feature/*` | Una rama por tarea |
+| `feature/*` | Funcionalidad nueva |
+| `fix/*` | Correcciones |
 
 Los merges a `master` se hacen vía Pull Request.
 
@@ -266,5 +311,6 @@ Los merges a `master` se hacen vía Pull Request.
 
 ## Documentación
 
-- **[ROADMAP.md](ROADMAP.md)** — plan de trabajo, prioridades, decisiones tomadas y
-  riesgos identificados.
+- **[ROADMAP.md](ROADMAP.md)** — plan de trabajo, reglas de negocio, decisiones,
+  estado de seguridad y riesgos identificados.
+- **[DESPLIEGUE.md](DESPLIEGUE.md)** — guía de despliegue de la API en Render.
