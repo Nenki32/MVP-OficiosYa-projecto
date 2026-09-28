@@ -1,109 +1,127 @@
-# Despliegue de la API en Render
+# Despliegue de la API, Configuración de Entornos y Seguridad Pre-Lanzamiento
 
-Guía para publicar `Marketplace.Api` en Render con el plan gratuito.
-La base de datos ya vive en Supabase: acá solo se despliega la API.
+Guía para configurar Marketplace.Api contra Supabase (São Paulo), empaquetar la API con Docker, conectar la app mobile de Expo sin clavar la IP local y aplicar el endurecimiento de seguridad antes de salir a producción.
 
----
+=============================================================================
+1. ANTES DE EMPEZAR
+=============================================================================
 
-## Antes de empezar
+- El repositorio cuenta con el Dockerfile en la raíz para empaquetar Marketplace.Api.
+- La base de datos vive en Supabase (Región: South America / São Paulo — PostgreSQL 17.6).
+- Tené a mano la connection string de Supabase usando siempre el "Session pooler" (puerto 5432).
+  * No uses el Transaction pooler (puerto 6543) con EF Core: rompe los prepared statements de Npgsql.
+  * La conexión directa (db.<ref>.supabase.co) es IPv6 y puede no resolver en todas las redes.
+- Generá una clave JWT_KEY nueva para producción: no reutilices nunca la de desarrollo (si alguna vez se filtró el .env local, cualquiera podría firmar tokens válidos).
 
-- El repositorio tiene que estar en GitHub con el `Dockerfile` en la raíz.
-- Tené a mano la connection string de Supabase (Session pooler, puerto 5432).
-- **Generá una clave JWT nueva para producción.** No reutilices la de desarrollo:
-  si alguna vez se filtró el `.env`, cualquiera podría firmar tokens válidos.
+=============================================================================
+2. VARIABLES DE ENTORNO DE LA API
+=============================================================================
 
----
+Estas variables tienen prioridad sobre el archivo .env local, el cual ni siquiera se copia a la imagen de producción porque está excluido en .dockerignore.
 
-## 1. Crear el servicio
+| Variable                  | Valor                                                                                      |
+|---------------------------|--------------------------------------------------------------------------------------------|
+| ASPNETCORE_ENVIRONMENT    | Production                                                                                 |
+| DB_CONNECTION             | Cadena de Supabase Session Pooler (puerto 5432), SIN comillas en variables de servidor     |
+| JWT_KEY                   | Clave nueva, larga y aleatoria (mínimo 32 bytes) — distinta de la de desarrollo            |
+| JWT_ISSUER                | MarketplaceApi                                                                             |
+| JWT_AUDIENCE              | MarketplaceClient                                                                          |
+| ADMIN_EMAIL               | El email real del administrador                                                            |
+| ADMIN_PASSWORD            | Contraseña fuerte exclusiva de producción, distinta de la local                            |
+| CORS_ORIGINS              | Solo si se publica el frontend web; la app mobile no usa CORS                              |
 
-1. Entrar a [render.com](https://render.com) y registrarse con GitHub.
-2. **New → Web Service** y elegir el repositorio.
-3. Configuración:
+Nota sobre DB_CONNECTION en desarrollo local (.env con DotNetEnv):
+En el archivo Marketplace.Api/.env local, DotNetEnv falla si hay comillas dentro del valor. Ahí sí debe ir envuelta toda la cadena entre comillas simples y la password sin comillas:
+DB_CONNECTION='Host=aws-0-sa-east-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.tu_ref;Password=TuPasswordSinComillas;SSL Mode=Require;Trust Server Certificate=true'
 
-   | Campo | Valor |
-   |---|---|
-   | Language / Runtime | **Docker** |
-   | Branch | `master` |
-   | Dockerfile Path | `./Dockerfile` |
-   | Instance Type | **Free** ← verificar explícitamente |
-   | Health Check Path | `/health` |
-   | Region | la más cercana disponible |
+=============================================================================
+3. VERIFICACIÓN DEL SERVICIO (/health) Y NOTAS DE OPERACIÓN
+=============================================================================
 
-> **No cargues método de pago.** Sin tarjeta asociada no hay forma de que se
-> genere un cobro: el peor caso es que el servicio deje de funcionar.
+1. Endpoint de salud (/health):
+   La API expone el endpoint GET /health para comprobar que el contenedor vive y las variables críticas están bien cargadas:
+   
+   Respuesta esperada (HTTP 200):
+   { "estado": "ok", "servicio": "oficiosya-api", "hora": "..." }
 
-> **No agregues una base de datos de Render.** La base es Supabase.
+   Si falla al iniciar, revisar los logs del contenedor: la API valida DB_CONNECTION y JWT_KEY al arrancar y falla con un mensaje explícito si faltan o tienen formato inválido.
 
----
+2. Comportamiento en Producción:
+   - El esquema ya está aplicado en Supabase. La API NO corre migraciones automáticamente al arrancar; cuando se agregue una migración nueva de EF Core, se aplica aparte con "dotnet ef database update".
+   - Al arrancar se crea el usuario administrador si no existe, usando ADMIN_EMAIL y ADMIN_PASSWORD.
+   - Swagger solo se expone en Development (ASPNETCORE_ENVIRONMENT=Development), por lo que en producción no estará disponible. Para verificar que la API responde, usar siempre /health.
 
-## 2. Variables de entorno
+=============================================================================
+4. APUNTAR LA APP MOBILE (DETECCIÓN AUTOMÁTICA DE IP LAN + PRODUCCIÓN)
+=============================================================================
 
-En **Environment → Add Environment Variable**:
+En lugar de cambiar manualmente mobile/app.json (expo.extra.apiUrl), reiniciar Metro y forzar el cierre de Expo Go desde recientes cada vez que cambia la IP WiFi de tu PC, configura el cliente HTTP (mobile/src/api/client.ts) con expo-constants:
 
-| Variable | Valor |
-|---|---|
-| `DB_CONNECTION` | La cadena de Supabase, **sin comillas** (acá no interviene DotNetEnv) |
-| `JWT_KEY` | Clave nueva, larga y aleatoria — distinta de la de desarrollo |
-| `JWT_ISSUER` | `MarketplaceApi` |
-| `JWT_AUDIENCE` | `MarketplaceClient` |
-| `ADMIN_EMAIL` | El email del administrador |
-| `ADMIN_PASSWORD` | Contraseña fuerte, distinta de la local |
-| `CORS_ORIGINS` | Solo si vas a publicar el frontend web; la app mobile no usa CORS |
+-----------------------------------------------------------------------------
+import Constants from 'expo-constants';
 
-Estas variables tienen prioridad sobre el `.env`, que ni siquiera se copia a la
-imagen (está en `.dockerignore`).
+export const getBaseApiUrl = (): string => {
+  // 1. Si se definió una variable de entorno explícita (ej. servidor de Producción), tiene prioridad:
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
 
----
+  // 2. En desarrollo local con Expo Go, detecta sola la IP LAN de la PC donde corre Metro:
+  const debuggerHost = Constants.expoConfig?.hostUri; // Ej: "192.168.1.4:8081"
+  const lanIp = debuggerHost?.split(':')[0];
 
-## 3. Verificar
+  if (__DEV__ && lanIp) {
+    return `http://${lanIp}:5100/api`;
+  }
 
-Cuando termine el despliegue, Render te da una URL del estilo
-`https://oficiosya-api.onrender.com`.
+  // 3. Fallback al valor configurado en mobile/app.json -> expo.extra.apiUrl:
+  return Constants.expoConfig?.extra?.apiUrl ?? 'http://localhost:5100/api';
+};
+-----------------------------------------------------------------------------
 
-```
-https://<tu-servicio>.onrender.com/health
-```
+Si prefieres definir la URL pública en mobile/app.json para un build de producción:
+  "extra": { "apiUrl": "https://<tu-dominio-api>/api" }
 
-Tiene que responder:
+=============================================================================
+5. ENDURECIMIENTO DE SEGURIDAD PRE-LANZAMIENTO
+=============================================================================
 
-```json
-{ "estado": "ok", "servicio": "oficiosya-api", "hora": "..." }
-```
+Antes de abrir la API a usuarios reales, verificar obligatoriamente estos 5 controles:
 
-Si falla, mirá los **Logs** en Render. El error más probable es una variable
-de entorno mal cargada: la API valida `DB_CONNECTION` y `JWT_KEY` al arrancar
-y falla con un mensaje explícito.
+1. Rate Limiting en Autenticación (.NET 9 nativo):
+   Los endpoints /api/auth/login y /api/auth/register deben tener límite de intentos por IP en Program.cs para frenar ataques de fuerza bruta y creación automatizada de cuentas falsas:
 
----
+-----------------------------------------------------------------------------
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
-## 4. Apuntar la app mobile
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("auth", opt =>
+    {
+        opt.PermitLimit = 5;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueLimit = 0;
+    });
+});
 
-En `mobile/app.json`, cambiar `expo.extra.apiUrl` por la URL pública:
+// Después de var app = builder.Build():
+app.UseRateLimiter();
+// Y decorar AuthController o los endpoints de login/registro con: [EnableRateLimiting("auth")]
+-----------------------------------------------------------------------------
 
-```json
-"extra": { "apiUrl": "https://<tu-servicio>.onrender.com/api" }
-```
+2. Eliminación de Usuarios de Prueba en Producción:
+   Asegurar que los usuarios de prueba con contraseña débil "Test1234!" (juan@test.com, maria@test.com, carlos@test.com, pedro@test.com) nunca se creen ni existan en la base de producción. Cualquier script o seed de usuarios de prueba debe ejecutarse únicamente si app.Environment.IsDevelopment() es true.
 
----
+3. Row Level Security (RLS) en Nuevas Tablas de Supabase:
+   Las 9 tablas actuales ya tienen RLS activo sin políticas (bloqueando el acceso directo vía PostgREST con la clave anónima, mientras la API .NET opera con el rol postgres que posee BYPASSRLS).
+   Por cada tabla nueva que se agregue en el futuro (Tareas, ProfesionalTareas, Turnos, Planes, Suscripciones), incluir siempre en el método Up() de la migración de EF Core:
+   migrationBuilder.Sql("ALTER TABLE public.nombre_tabla ENABLE ROW LEVEL SECURITY;");
+   (Usar siempre ENABLE y nunca FORCE, para no bloquear al dueño postgres que usa la API).
 
-## Lo que hay que saber del plan gratuito
+4. Restricción de CORS por Entorno:
+   En Program.cs, verificar que AllowAnyOrigin() esté restringido exclusivamente a Development. En producción, leer los orígenes permitidos desde la variable CORS_ORIGINS.
 
-- **El servicio se duerme tras unos 15 minutos sin peticiones.** El siguiente
-  acceso lo despierta, pero tarda cerca de un minuto. Avisale a quien vaya a
-  probar la app, o va a pensar que está rota.
-- Que vos trabajes todos los días no lo mantiene despierto: cuentan los
-  minutos desde la última petición, no los días desde el último uso.
-- Render no tiene región en Sudamérica. Con la base en São Paulo, cada consulta
-  cruza el continente. Es tolerable para probar, no para producción real.
-- Las condiciones de los planes gratuitos cambian: verificá las vigentes.
-
----
-
-## Notas
-
-- El esquema **ya está aplicado** en Supabase. La API no corre migraciones al
-  arrancar; si en el futuro agregás alguna, hay que aplicarla aparte.
-- Al arrancar se crea el usuario administrador si no existe, usando
-  `ADMIN_EMAIL` y `ADMIN_PASSWORD`.
-- Swagger solo se expone en Development, así que en Render no va a estar
-  disponible. Para verificar que la API vive, usá `/health`.
+5. Revelación por Etapas y Privacidad de Datos Personales:
+   Verificar que ningún endpoint de listado o detalle de trabajos pendientes devuelva direccionDestino exacta, coordenadas sin redondear ni el teléfono del cliente antes de que el trabajo esté asignado a ese profesional, cumpliendo con la protección de domicilio de los clientes y la Ley 25.326 de Protección de Datos Personales (Argentina).
