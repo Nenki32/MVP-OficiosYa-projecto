@@ -133,13 +133,15 @@ public class TrabajoUseCase : ITrabajoService
 
         // Elegible: el asignado, quien ya se postulo, o quien lo ve en su
         // listado (pendiente, de su rubro y dentro de su radio).
+        var enListado = (await _trabajoRepo.GetParaProfesionalAsync(usuarioId, id)).FirstOrDefault();
         var elegible = trabajo.ProfesionalId == usuarioId
             || trabajo.Postulaciones.Any(p => p.ProfesionalId == usuarioId)
-            || (await _trabajoRepo.GetParaProfesionalAsync(usuarioId)).Any(x => x.Trabajo.Id == id);
+            || enListado is not null;
         if (!elegible)
             throw new UnauthorizedAccessException("No puedes ver este trabajo.");
 
         var dto = OcultarDireccionSiAjeno(MapToDetalle(trabajo), usuarioId);
+        dto.DistanciaKm = enListado?.DistanciaMetros is null ? null : Math.Round(enListado.DistanciaMetros.Value / 1000, 1);
         // Los presupuestos de otros profesionales solo los ve el cliente.
         dto.Postulaciones = dto.Postulaciones.Where(p => p.ProfesionalId == usuarioId).ToList();
         if (trabajo.ProfesionalId != usuarioId)
