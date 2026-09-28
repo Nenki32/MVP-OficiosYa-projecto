@@ -30,7 +30,9 @@
         {
           "locationAlwaysAndWhenInUsePermission": "OficiosYa usa tu ubicación para mostrarte trabajos y profesionales cercanos."
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-status-bar"
     ],
     "extra": {
       "apiUrl": "http://192.168.1.4:5100/api"
