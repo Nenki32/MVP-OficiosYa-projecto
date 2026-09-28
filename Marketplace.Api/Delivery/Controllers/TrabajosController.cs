@@ -48,12 +48,16 @@ public class TrabajosController : ControllerBase
     {
         try
         {
-            var trabajo = await _service.ObtenerAsync(id);
+            var trabajo = await _service.ObtenerAsync(id, UserId, UserRol);
             return Ok(trabajo);
         }
         catch (KeyNotFoundException)
         {
             return NotFound(new { error = "Trabajo no encontrado." });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
         }
     }
 

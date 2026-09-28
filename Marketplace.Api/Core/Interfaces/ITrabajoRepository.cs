@@ -19,7 +19,7 @@ public interface ITrabajoRepository
     /// la distancia viene nula: es preferible mostrar todo antes que una lista
     /// vacia sin explicacion.
     /// </summary>
-    Task<List<TrabajoConDistancia>> GetParaProfesionalAsync(int profesionalId);
+    Task<List<TrabajoConDistancia>> GetParaProfesionalAsync(int profesionalId, int? trabajoId = null);
     Task AddAsync(Trabajo trabajo);
     Task UpdateAsync(Trabajo trabajo);
     Task<int> CountAsync();

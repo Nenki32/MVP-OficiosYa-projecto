@@ -43,7 +43,7 @@ public class TrabajoRepository : ITrabajoRepository
             .OrderByDescending(t => t.CreadoEn)
             .ToListAsync();
 
-    public async Task<List<TrabajoConDistancia>> GetParaProfesionalAsync(int profesionalId)
+    public async Task<List<TrabajoConDistancia>> GetParaProfesionalAsync(int profesionalId, int? trabajoId = null)
     {
         var profesional = await _db.Usuarios
             .Include(u => u.Servicios)
@@ -63,6 +63,10 @@ public class TrabajoRepository : ITrabajoRepository
             // ya los tomo, no tendria sentido esconderlos si movio su zona.
             .Where(t => t.ProfesionalId == profesionalId ||
                         (t.ProfesionalId == null && t.Estado == "pendiente"));
+
+        // Para el detalle: solo interesa ese trabajo, no el listado entero.
+        if (trabajoId is not null)
+            query = query.Where(t => t.Id == trabajoId);
 
         if (rubros.Count > 0)
             query = query.Where(t => t.ProfesionalId == profesionalId ||
