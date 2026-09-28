@@ -55,11 +55,12 @@ public class TrabajoUseCase : ITrabajoService
         if (rol == "profesional")
         {
             var conDistancia = await _trabajoRepo.GetParaProfesionalAsync(usuarioId);
-            return conDistancia.Select(x => MapToLista(
+            return conDistancia.Select(x => OcultarDireccionSiAjeno(MapToLista(
                 x.Trabajo,
                 // Se redondea a un decimal: mostrar "1.6 km" es util,
                 // "1.6432871 km" es ruido.
-                x.DistanciaMetros is null ? null : Math.Round(x.DistanciaMetros.Value / 1000, 1)))
+                x.DistanciaMetros is null ? null : Math.Round(x.DistanciaMetros.Value / 1000, 1)),
+                usuarioId))
                 .ToList();
         }
 
@@ -68,6 +69,19 @@ public class TrabajoUseCase : ITrabajoService
             : await _trabajoRepo.GetPendientesAsync();
 
         return trabajos.Select(t => MapToLista(t, null)).ToList();
+    }
+
+    /// <summary>
+    /// Hasta que el trabajo se le asigna, el profesional solo ve la zona: sin
+    /// direccion y con coordenadas redondeadas a 2 decimales (~1 km).
+    /// </summary>
+    private static T OcultarDireccionSiAjeno<T>(T dto, int profesionalId) where T : TrabajoDto
+    {
+        if (dto.ProfesionalId == profesionalId) return dto;
+        dto.DireccionDestino = null;
+        dto.LatitudDestino = dto.LatitudDestino is null ? null : Math.Round(dto.LatitudDestino.Value, 2);
+        dto.LongitudDestino = dto.LongitudDestino is null ? null : Math.Round(dto.LongitudDestino.Value, 2);
+        return dto;
     }
 
     private static TrabajoDto MapToLista(Trabajo t, double? distanciaKm) => new()
@@ -106,6 +120,33 @@ public class TrabajoUseCase : ITrabajoService
         return MapToDetalle(trabajo);
     }
 
+    public async Task<TrabajoDetalleDto> ObtenerAsync(int id, int usuarioId, string rol)
+    {
+        var trabajo = await _trabajoRepo.GetByIdWithAllAsync(id)
+            ?? throw new KeyNotFoundException("Trabajo no encontrado.");
+
+        if (rol == "admin" || trabajo.ClienteId == usuarioId)
+            return MapToDetalle(trabajo);
+
+        if (rol != "profesional")
+            throw new UnauthorizedAccessException("No puedes ver este trabajo.");
+
+        // Elegible: el asignado, quien ya se postulo, o quien lo ve en su
+        // listado (pendiente, de su rubro y dentro de su radio).
+        var elegible = trabajo.ProfesionalId == usuarioId
+            || trabajo.Postulaciones.Any(p => p.ProfesionalId == usuarioId)
+            || (await _trabajoRepo.GetParaProfesionalAsync(usuarioId)).Any(x => x.Trabajo.Id == id);
+        if (!elegible)
+            throw new UnauthorizedAccessException("No puedes ver este trabajo.");
+
+        var dto = OcultarDireccionSiAjeno(MapToDetalle(trabajo), usuarioId);
+        // Los presupuestos de otros profesionales solo los ve el cliente.
+        dto.Postulaciones = dto.Postulaciones.Where(p => p.ProfesionalId == usuarioId).ToList();
+        if (trabajo.ProfesionalId != usuarioId)
+            dto.Pago = null;
+        return dto;
+    }
+
     public async Task<TrabajoDetalleDto> ActualizarEstadoAsync(int id, int usuarioId, string nuevoEstado)
     {
         var trabajo = await _trabajoRepo.GetByIdAsync(id)
@@ -131,6 +172,11 @@ public class TrabajoUseCase : ITrabajoService
 
         if (nuevoEstado == "cancelado" && trabajo.ProfesionalId != usuarioId && trabajo.ClienteId != usuarioId)
             throw new UnauthorizedAccessException("No puedes cancelar este trabajo.");
+
+        // viajando / en_progreso / completado: solo el profesional asignado.
+        // Sin esto cualquiera movia el estado y recibia el detalle completo.
+        if (nuevoEstado is not ("aceptado" or "cancelado") && trabajo.ProfesionalId != usuarioId)
+            throw new UnauthorizedAccessException("Solo el profesional asignado puede cambiar este estado.");
 
         trabajo.Estado = nuevoEstado;
         trabajo.ActualizadoEn = DateTime.UtcNow;
