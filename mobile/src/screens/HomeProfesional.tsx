@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native'
-import { useFocusEffect } from 'expo-router'
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import { useFocusEffect, useRouter } from 'expo-router'
 import { api } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { Pantalla } from '../components/Pantalla'
@@ -9,6 +9,7 @@ import { colors, spacing, typography } from '../theme'
 
 export function HomeProfesional() {
   const { usuario } = useAuth()
+  const router = useRouter()
   const [trabajos, setTrabajos] = useState<Trabajo[]>([])
   const [cargando, setCargando] = useState(true)
   const [refrescando, setRefrescando] = useState(false)
@@ -54,7 +55,14 @@ export function HomeProfesional() {
               </Text>
             </View>
           }
-          renderItem={({ item }) => <TrabajoCard trabajo={item} verContraparte="cliente" mostrarDistancia />}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() => router.push(`/trabajo/${item.id}`)}
+              style={({ pressed }) => pressed && { opacity: 0.75 }}
+            >
+              <TrabajoCard trabajo={item} verContraparte="cliente" mostrarDistancia />
+            </Pressable>
+          )}
         />
       )}
     </Pantalla>
