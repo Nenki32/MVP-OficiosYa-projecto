@@ -165,7 +165,10 @@ using (var scope = app.Services.CreateScope())
     if (!await db.Usuarios.AnyAsync(u => u.Rol == "admin"))
     {
         var adminEmail = builder.Configuration["Admin:Email"] ?? "admin@oficiosya.com";
-        var adminPass = builder.Configuration["Admin:Password"] ?? "Admin123!";
+        var adminPass = builder.Configuration["Admin:Password"];
+        if (string.IsNullOrWhiteSpace(adminPass))
+            throw new InvalidOperationException(
+                "Falta la variable de entorno ADMIN_PASSWORD para crear el primer admin.");
 
         db.Usuarios.Add(new Marketplace.Api.Core.Models.Usuario
         {
@@ -176,7 +179,7 @@ using (var scope = app.Services.CreateScope())
         });
 
         await db.SaveChangesAsync();
-        Console.WriteLine($"> Admin creado: {adminEmail} / {adminPass}");
+        Console.WriteLine($"> Admin creado: {adminEmail}");
     }
 }
 
