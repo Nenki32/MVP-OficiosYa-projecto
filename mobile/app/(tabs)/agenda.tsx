@@ -1,13 +1,13 @@
 import { useCallback, useMemo, useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { useFocusEffect } from 'expo-router'
+import { useFocusEffect, useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
 import { iconoDeServicio } from '../../src/api/servicios'
 import { Calendario, formatFechaLarga, hoyIso } from '../../src/components/Calendario'
 import { Pantalla } from '../../src/components/Pantalla'
 import type { Trabajo } from '../../src/components/TrabajoCard'
-import { colors, formatEstado, radius, spacing, typography } from '../../src/theme'
+import { colors, formatEstado, formatMonto, radius, spacing, typography } from '../../src/theme'
 
 /** Fecha ISO local ("AAAA-MM-DD") de una fecha con hora en UTC. */
 const diaDe = (iso: string) => {
@@ -19,6 +19,7 @@ const horaDe = (iso: string) =>
   new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
 
 export default function Agenda() {
+  const router = useRouter()
   const [trabajos, setTrabajos] = useState<Trabajo[]>([])
   const [dia, setDia] = useState(hoyIso())
   const [cargando, setCargando] = useState(true)
@@ -32,10 +33,13 @@ export default function Agenda() {
     return () => { vivo = false }
   }, []))
 
-  // Solo los trabajos que el profesional tomó: la agenda es de lo comprometido,
-  // no de lo disponible.
+  // Los trabajos asignados al profesional y los que presupuestó y el cliente
+  // todavía no eligió: así no se compromete dos veces en el mismo horario.
+  // El backend solo manda con profesional los que son de él.
   const mios = useMemo(
-    () => trabajos.filter(t => t.profesionalNombre != null && t.estado !== 'cancelado'),
+    () => trabajos.filter(t =>
+      (t.profesionalNombre != null && t.estado !== 'cancelado') ||
+      ((t.estado === 'pendiente' || t.estado === 'a_reprogramar') && t.yaMePostule)),
     [trabajos],
   )
 
@@ -57,7 +61,7 @@ export default function Agenda() {
   )
 
   return (
-    <Pantalla titulo="Mi agenda" subtitulo="Los trabajos que tomaste">
+    <Pantalla titulo="Mi agenda" subtitulo="Tus trabajos y presupuestos enviados">
       {cargando ? (
         <ActivityIndicator style={s.cargando} color={colors.primary} />
       ) : (
@@ -73,9 +77,11 @@ export default function Agenda() {
                 </Text>
               </View>
               {sinFecha.map(t => (
-                <Text key={t.id} style={s.sinFechaItem}>
-                  • {t.servicioNombre} — {t.clienteNombre}
-                </Text>
+                <Pressable key={t.id} onPress={() => router.push(`/trabajo/${t.id}`)} hitSlop={4}>
+                  <Text style={s.sinFechaItem}>
+                    • {t.servicioNombre} — {t.clienteNombre} ›
+                  </Text>
+                </Pressable>
               ))}
             </View>
           )}
@@ -95,9 +101,10 @@ export default function Agenda() {
             </View>
           ) : (
             delDia.map(t => {
-              const color = colors.estado[t.estado] ?? colors.textMuted
+              const esperando = t.estado === 'pendiente'
+              const color = esperando ? colors.textMuted : (colors.estado[t.estado] ?? colors.textMuted)
               return (
-                <View key={t.id} style={s.turno}>
+                <Pressable key={t.id} style={s.turno} onPress={() => router.push(`/trabajo/${t.id}`)}>
                   <View style={s.horaColumna}>
                     <Text style={s.hora}>{horaDe(t.fechaVisita!)}</Text>
                     <View style={[s.linea, { backgroundColor: color }]} />
@@ -117,9 +124,20 @@ export default function Agenda() {
                         <Text style={typography.caption}>{t.clienteNombre}</Text>
                       </View>
                       <View style={[s.chip, { backgroundColor: color + '22' }]}>
-                        <Text style={[s.chipTexto, { color }]}>{formatEstado(t.estado)}</Text>
+                        <Text style={[s.chipTexto, { color }]}>
+                          {esperando ? 'Esperando al cliente' : formatEstado(t.estado)}
+                        </Text>
                       </View>
                     </View>
+
+                    {t.estado === 'completado' && t.montoPagado != null && (
+                      <View style={s.direccion}>
+                        <Ionicons name="cash-outline" size={13} color={colors.success} />
+                        <Text style={typography.caption}>
+                          Abonado · {formatMonto(t.montoPagado)} · {formatEstado(t.tipoPago)}
+                        </Text>
+                      </View>
+                    )}
 
                     {t.direccionDestino && (
                       <View style={s.direccion}>
@@ -130,7 +148,7 @@ export default function Agenda() {
                       </View>
                     )}
                   </View>
-                </View>
+                </Pressable>
               )
             })
           )}

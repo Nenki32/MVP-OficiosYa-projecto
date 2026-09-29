@@ -127,7 +127,7 @@ public class TrabajosController : ControllerBase
         var trabajo = await _db.Trabajos.FindAsync(id);
         if (trabajo == null)
             return NotFound(new { error = "Trabajo no encontrado." });
-        if (trabajo.Estado != "pendiente")
+        if (trabajo.Estado != "pendiente" || trabajo.ParaReprogramar(DateTime.UtcNow))
             return BadRequest(new { error = "Este trabajo ya no acepta postulaciones." });
         if (trabajo.ClienteId == UserId)
             return BadRequest(new { error = "No podes postularte a tu propio trabajo." });
@@ -180,6 +180,8 @@ public class TrabajosController : ControllerBase
         if (trabajo.ClienteId != UserId) return Forbid();
         if (trabajo.Estado != "pendiente")
             return BadRequest(new { error = "El trabajo ya tiene un profesional asignado." });
+        if (trabajo.ParaReprogramar(DateTime.UtcNow))
+            return BadRequest(new { error = "La fecha del trabajo ya paso: hay que reprogramarlo." });
 
         var postulado = await _postulacionRepo.ExistsAsync(id, profesionalId);
         if (!postulado)
@@ -188,5 +190,37 @@ public class TrabajosController : ControllerBase
         await _service.AsignarProfesionalAsync(id, profesionalId);
 
         return Ok(new { message = "Profesional asignado correctamente." });
+    }
+
+    /// <summary>
+    /// El cliente elige una fecha nueva para un trabajo "a reprogramar". Vuelve a
+    /// pendiente y se borran los presupuestos: con otra fecha los profesionales
+    /// tienen que presupuestar de nuevo.
+    /// </summary>
+    [HttpPatch("{id}/fecha")]
+    public async Task<IActionResult> Reprogramar(int id, [FromBody] ReprogramarRequest request)
+    {
+        var trabajo = await _db.Trabajos
+            .Include(t => t.Postulaciones)
+            .FirstOrDefaultAsync(t => t.Id == id);
+        if (trabajo == null)
+            return NotFound(new { error = "Trabajo no encontrado." });
+        if (trabajo.ClienteId != UserId) return Forbid();
+
+        var ahora = DateTime.UtcNow;
+        if (!trabajo.ParaReprogramar(ahora))
+            return BadRequest(new { error = "Solo se puede reprogramar un trabajo a reprogramar." });
+
+        var fecha = request.FechaVisita!.Value.ToUniversalTime();
+        if (fecha <= ahora)
+            return BadRequest(new { error = "La nueva fecha tiene que ser futura." });
+
+        _db.Postulaciones.RemoveRange(trabajo.Postulaciones);
+        trabajo.FechaVisita = fecha;
+        trabajo.DuracionEstimadaMin ??= 60;
+        trabajo.ActualizadoEn = ahora;
+        await _db.SaveChangesAsync();
+
+        return Ok(await _service.ObtenerAsync(id));
     }
 }
