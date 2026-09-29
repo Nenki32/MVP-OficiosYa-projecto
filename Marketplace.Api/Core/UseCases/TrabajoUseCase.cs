@@ -306,6 +306,7 @@ public class TrabajoUseCase : ITrabajoService
         Estado = t.EstadoVisible(DateTime.UtcNow),
         Descripcion = t.Descripcion,
         TipoPago = t.TipoPago,
+        FechaVisita = t.FechaVisita,
         LatitudDestino = t.Ubicacion?.Y,
         LongitudDestino = t.Ubicacion?.X,
         DireccionDestino = t.DireccionDestino,
