@@ -15,8 +15,15 @@ LocaleConfig.locales.es = {
 }
 LocaleConfig.defaultLocale = 'es'
 
-/** Fecha de hoy como "AAAA-MM-DD", que es el formato que usa la librería. */
-export const hoyIso = () => new Date().toISOString().split('T')[0]
+/**
+ * Fecha de hoy como "AAAA-MM-DD", que es el formato que usa la librería.
+ * En hora local: con toISOString (UTC), en Argentina después de las 21 ya
+ * daba el día siguiente.
+ */
+export const hoyIso = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 /**
  * Convierte "AAAA-MM-DD" + hora a un Date local.

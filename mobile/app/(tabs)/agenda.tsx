@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { useFocusEffect } from 'expo-router'
+import { useFocusEffect, useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
 import { iconoDeServicio } from '../../src/api/servicios'
 import { Calendario, formatFechaLarga, hoyIso } from '../../src/components/Calendario'
@@ -19,6 +19,7 @@ const horaDe = (iso: string) =>
   new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
 
 export default function Agenda() {
+  const router = useRouter()
   const [trabajos, setTrabajos] = useState<Trabajo[]>([])
   const [dia, setDia] = useState(hoyIso())
   const [cargando, setCargando] = useState(true)
@@ -73,9 +74,11 @@ export default function Agenda() {
                 </Text>
               </View>
               {sinFecha.map(t => (
-                <Text key={t.id} style={s.sinFechaItem}>
-                  • {t.servicioNombre} — {t.clienteNombre}
-                </Text>
+                <Pressable key={t.id} onPress={() => router.push(`/trabajo/${t.id}`)} hitSlop={4}>
+                  <Text style={s.sinFechaItem}>
+                    • {t.servicioNombre} — {t.clienteNombre} ›
+                  </Text>
+                </Pressable>
               ))}
             </View>
           )}
