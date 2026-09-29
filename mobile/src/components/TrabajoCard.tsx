@@ -13,6 +13,8 @@ export interface Trabajo {
   direccionDestino: string | null
   /** Día y hora propuestos para la visita. Null si no se agendó. */
   fechaVisita: string | null
+  /** Solo en el listado del profesional: si ya mandó presupuesto. */
+  yaMePostule?: boolean
   /** Km hasta el profesional. Null si alguno de los dos no tiene ubicación. */
   distanciaKm: number | null
   creadoEn: string

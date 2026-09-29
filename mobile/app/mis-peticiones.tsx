@@ -63,7 +63,9 @@ export default function MisPeticiones() {
             </View>
           }
           renderItem={({ item }) => (
-            <TrabajoCard trabajo={item} verContraparte="profesional" />
+            <Pressable onPress={() => router.push(`/trabajo/${item.id}`)}>
+              <TrabajoCard trabajo={item} verContraparte="profesional" />
+            </Pressable>
           )}
         />
       )}

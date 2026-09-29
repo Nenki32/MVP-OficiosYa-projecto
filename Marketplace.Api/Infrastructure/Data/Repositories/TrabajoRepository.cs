@@ -88,6 +88,7 @@ public class TrabajoRepository : ITrabajoRepository
                 DistanciaMetros = ubicacion != null && t.Ubicacion != null
                     ? t.Ubicacion.Distance(ubicacion)
                     : null,
+                YaMePostule = t.Postulaciones.Any(p => p.ProfesionalId == profesionalId),
             })
             .OrderBy(x => x.DistanciaMetros ?? double.MaxValue)
             .ThenByDescending(x => x.Trabajo.CreadoEn)

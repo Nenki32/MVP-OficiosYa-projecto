@@ -55,12 +55,17 @@ public class TrabajoUseCase : ITrabajoService
         if (rol == "profesional")
         {
             var conDistancia = await _trabajoRepo.GetParaProfesionalAsync(usuarioId);
-            return conDistancia.Select(x => OcultarDireccionSiAjeno(MapToLista(
-                x.Trabajo,
-                // Se redondea a un decimal: mostrar "1.6 km" es util,
-                // "1.6432871 km" es ruido.
-                x.DistanciaMetros is null ? null : Math.Round(x.DistanciaMetros.Value / 1000, 1)),
-                usuarioId))
+            return conDistancia.Select(x =>
+                {
+                    var dto = OcultarDireccionSiAjeno(MapToLista(
+                        x.Trabajo,
+                        // Se redondea a un decimal: mostrar "1.6 km" es util,
+                        // "1.6432871 km" es ruido.
+                        x.DistanciaMetros is null ? null : Math.Round(x.DistanciaMetros.Value / 1000, 1)),
+                        usuarioId);
+                    dto.YaMePostule = x.YaMePostule;
+                    return dto;
+                })
                 .ToList();
         }
 
