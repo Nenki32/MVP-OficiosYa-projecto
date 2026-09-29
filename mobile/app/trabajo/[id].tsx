@@ -15,7 +15,12 @@ import { colors, formatEstado, formatMonto, radius, spacing, typography } from '
 interface TrabajoDetalle extends Trabajo {
   descripcion: string | null
   /** Hoy el backend manda todas; cuando se restrinja, puede venir solo la propia. */
-  postulaciones?: { profesionalId: number; presupuesto: number | null }[]
+  postulaciones?: {
+    profesionalId: number
+    profesionalNombre: string
+    nivelProfesional: string | null
+    presupuesto: number | null
+  }[]
   /** Campo previsto en el ROADMAP para reemplazar la lista de postulaciones. */
   yaMePostule?: boolean
 }
@@ -36,6 +41,9 @@ export default function DetalleTrabajo() {
   const [enviando, setEnviando] = useState(false)
   const [enviado, setEnviado] = useState(false)
   const [error, setError] = useState('')
+  const [aceptando, setAceptando] = useState<number | null>(null)
+
+  const esCliente = usuario?.rol === 'cliente'
 
   const cargar = useCallback(async () => {
     setError('')
@@ -71,6 +79,20 @@ export default function DetalleTrabajo() {
       else setError(e?.message ?? 'No se pudo enviar el presupuesto.')
     } finally {
       setEnviando(false)
+    }
+  }
+
+  /** El cliente elige un presupuesto: el trabajo pasa a aceptado y entra en la agenda del profesional. */
+  const aceptar = async (profesionalId: number) => {
+    setError('')
+    setAceptando(profesionalId)
+    try {
+      await api.post(`/trabajos/${id}/asignar/${profesionalId}`, {})
+      await cargar()
+    } catch (e: any) {
+      setError(e?.message ?? 'No se pudo aceptar el presupuesto.')
+    } finally {
+      setAceptando(null)
     }
   }
 
@@ -124,9 +146,11 @@ export default function DetalleTrabajo() {
               <Fila icono="calendar-outline" texto={
                 trabajo.fechaVisita ? formatFechaVisita(trabajo.fechaVisita) : 'Sin fecha propuesta'
               } />
-              <Fila icono="navigate-outline" texto={
-                trabajo.distanciaKm != null ? `A ${String(trabajo.distanciaKm).replace('.', ',')} km de tu zona` : 'Sin ubicación en el mapa'
-              } />
+              {!esCliente && (
+                <Fila icono="navigate-outline" texto={
+                  trabajo.distanciaKm != null ? `A ${String(trabajo.distanciaKm).replace('.', ',')} km de tu zona` : 'Sin ubicación en el mapa'
+                } />
+              )}
               {/* La direccion exacta solo llega cuando el trabajo esta asignado. */}
               <Fila icono="location-outline" texto={
                 trabajo.direccionDestino ?? 'La dirección exacta se muestra cuando te asignan el trabajo'
@@ -134,7 +158,56 @@ export default function DetalleTrabajo() {
               <Fila icono="wallet-outline" texto={`Pago: ${formatEstado(trabajo.tipoPago)}`} />
             </View>
 
-            {trabajo.estado !== 'pendiente' ? null : yaPostulado ? (
+            {esCliente ? (
+              trabajo.estado === 'a_reprogramar' ? (
+                <View style={s.bloque}>
+                  <Text style={typography.body}>
+                    La fecha pasó sin que aceptaras un presupuesto. Elegí una nueva: los
+                    profesionales van a tener que presupuestar de nuevo.
+                  </Text>
+                  <Pressable
+                    onPress={() => router.push({
+                      pathname: '/agendar',
+                      params: { servicioNombre: trabajo.servicioNombre, trabajoId: String(trabajo.id) },
+                    })}
+                    style={({ pressed }) => [s.enviar, pressed && s.enviarPresionado]}
+                  >
+                    <Text style={s.enviarTexto}>Elegir nueva fecha</Text>
+                  </Pressable>
+                </View>
+              ) : trabajo.estado !== 'pendiente' ? (
+                trabajo.profesionalNombre && (
+                  <Fila icono="person-outline" texto={`Profesional: ${trabajo.profesionalNombre}`} />
+                )
+              ) : (
+                <View style={s.bloque}>
+                  <Text style={s.label}>Presupuestos recibidos</Text>
+                  {!trabajo.postulaciones?.length && (
+                    <Text style={typography.caption}>Todavía no recibiste presupuestos.</Text>
+                  )}
+                  {trabajo.postulaciones?.map(p => (
+                    <View key={p.profesionalId} style={s.fila}>
+                      <View style={s.flex}>
+                        <Text style={typography.bodyStrong}>{p.profesionalNombre}</Text>
+                        <Text style={typography.caption}>
+                          {p.presupuesto != null ? formatMonto(p.presupuesto) : 'Sin monto'}
+                        </Text>
+                      </View>
+                      <Pressable
+                        onPress={() => aceptar(p.profesionalId)}
+                        disabled={aceptando != null}
+                        style={({ pressed }) => [s.aceptar, pressed && s.enviarPresionado]}
+                      >
+                        {aceptando === p.profesionalId
+                          ? <ActivityIndicator color={colors.textOnPrimary} />
+                          : <Text style={s.aceptarTexto}>Aceptar</Text>}
+                      </Pressable>
+                    </View>
+                  ))}
+                  {error !== '' && <Text style={s.errorTexto}>{error}</Text>}
+                </View>
+              )
+            ) : trabajo.estado !== 'pendiente' ? null : yaPostulado ? (
               <View style={s.ok}>
                 <Ionicons name="checkmark-circle" size={22} color={colors.success} />
                 <Text style={s.okTexto}>
@@ -243,4 +316,9 @@ const s = StyleSheet.create({
   enviarDeshabilitado: { backgroundColor: colors.textMuted, opacity: 0.5 },
   enviarPresionado: { backgroundColor: colors.primaryDark },
   enviarTexto: { color: colors.textOnPrimary, fontSize: 16, fontWeight: '700' },
+  aceptar: {
+    backgroundColor: colors.primary, borderRadius: radius.pill,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+  },
+  aceptarTexto: { color: colors.textOnPrimary, fontSize: 14, fontWeight: '700' },
 })
