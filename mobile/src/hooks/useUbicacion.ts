@@ -87,3 +87,28 @@ export async function describirUbicacion(
     return null
   }
 }
+
+/**
+ * Convierte coordenadas en una direccion para precargar el formulario
+ * ("Av. Cabildo 1234, Buenos Aires"). Es solo una sugerencia: el usuario la
+ * puede corregir a mano. Devuelve null si el sistema no encuentra la calle.
+ */
+export async function direccionDeUbicacion(
+  latitud: number,
+  longitud: number,
+): Promise<string | null> {
+  try {
+    const [lugar] = await Location.reverseGeocodeAsync({ latitude: latitud, longitude: longitud })
+    if (!lugar) return null
+
+    const calle = lugar.street
+      ? [lugar.street, lugar.streetNumber].filter(Boolean).join(' ')
+      : lugar.name
+    if (!calle) return null
+
+    const ciudad = lugar.city ?? lugar.subregion ?? lugar.region
+    return ciudad ? `${calle}, ${ciudad}` : calle
+  } catch {
+    return null
+  }
+}

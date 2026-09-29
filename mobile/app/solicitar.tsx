@@ -9,7 +9,7 @@ import { api } from '../src/api/client'
 import { iconoDeServicio } from '../src/api/servicios'
 import { aFechaLocal, formatFechaLarga } from '../src/components/Calendario'
 import { Pantalla } from '../src/components/Pantalla'
-import { describirUbicacion, useUbicacion, type Coordenadas } from '../src/hooks/useUbicacion'
+import { describirUbicacion, direccionDeUbicacion, useUbicacion, type Coordenadas } from '../src/hooks/useUbicacion'
 import { colors, radius, spacing, typography } from '../src/theme'
 
 const TIPOS_PAGO = [
@@ -34,6 +34,9 @@ export default function Solicitar() {
   const [tipoPago, setTipoPago] = useState('efectivo')
   const [coords, setCoords] = useState<Coordenadas | null>(null)
   const [zona, setZona] = useState<string | null>(null)
+  // Ultima direccion que puso el GPS. Si el campo sigue igual (o vacio), se
+  // puede reemplazar al actualizar la ubicacion; si el usuario la edito, no.
+  const [direccionAuto, setDireccionAuto] = useState('')
   const [error, setError] = useState('')
   const [enviando, setEnviando] = useState(false)
 
@@ -43,7 +46,15 @@ export default function Solicitar() {
     const c = await obtener()
     if (!c) return
     setCoords(c)
-    setZona(await describirUbicacion(c.latitud, c.longitud))
+    const [z, d] = await Promise.all([
+      describirUbicacion(c.latitud, c.longitud),
+      direccionDeUbicacion(c.latitud, c.longitud),
+    ])
+    setZona(z)
+    if (d && (direccion.trim() === '' || direccion === direccionAuto)) {
+      setDireccion(d)
+      setDireccionAuto(d)
+    }
   }
 
   const enviar = async () => {
