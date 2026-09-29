@@ -39,7 +39,7 @@ export default function Agenda() {
   const mios = useMemo(
     () => trabajos.filter(t =>
       (t.profesionalNombre != null && t.estado !== 'cancelado') ||
-      (t.estado === 'pendiente' && t.yaMePostule)),
+      ((t.estado === 'pendiente' || t.estado === 'a_reprogramar') && t.yaMePostule)),
     [trabajos],
   )
 
@@ -99,7 +99,7 @@ export default function Agenda() {
             </View>
           ) : (
             delDia.map(t => {
-              const esperando = t.profesionalNombre == null
+              const esperando = t.estado === 'pendiente'
               const color = esperando ? colors.textMuted : (colors.estado[t.estado] ?? colors.textMuted)
               return (
                 <Pressable key={t.id} style={s.turno} onPress={() => router.push(`/trabajo/${t.id}`)}>

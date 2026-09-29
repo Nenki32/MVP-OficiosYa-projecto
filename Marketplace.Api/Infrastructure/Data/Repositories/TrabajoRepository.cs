@@ -54,6 +54,7 @@ public class TrabajoRepository : ITrabajoRepository
         var rubros = profesional.Servicios.Select(ps => ps.ServicioId).ToList();
         var ubicacion = profesional.Ubicacion;
         var radioMetros = profesional.RadioCoberturaKm * 1000d;
+        var limiteReprogramar = DateTime.UtcNow.AddDays(-Trabajo.DiasParaReprogramar);
 
         var query = _db.Trabajos
             .Include(t => t.Cliente)
@@ -62,7 +63,11 @@ public class TrabajoRepository : ITrabajoRepository
             // Los trabajos propios se ven siempre, sin importar rubro ni radio:
             // ya los tomo, no tendria sentido esconderlos si movio su zona.
             .Where(t => t.ProfesionalId == profesionalId ||
-                        (t.ProfesionalId == null && t.Estado == "pendiente"));
+                        (t.ProfesionalId == null && t.Estado == "pendiente" &&
+                         // Los vencidos (a reprogramar) solo los sigue viendo
+                         // quien ya presupuesto, para tenerlos en su agenda.
+                         (t.FechaVisita == null || t.FechaVisita >= limiteReprogramar ||
+                          t.Postulaciones.Any(p => p.ProfesionalId == profesionalId))));
 
         // Para el detalle: solo interesa ese trabajo, no el listado entero.
         if (trabajoId is not null)

@@ -41,6 +41,7 @@ export const colors = {
     en_progreso: '#F97316',
     completado: '#00B37E',
     cancelado: '#E5484D',
+    a_reprogramar: '#8A5A00',
   } as Record<string, string>,
 }
 

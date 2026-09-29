@@ -127,7 +127,7 @@ public class TrabajosController : ControllerBase
         var trabajo = await _db.Trabajos.FindAsync(id);
         if (trabajo == null)
             return NotFound(new { error = "Trabajo no encontrado." });
-        if (trabajo.Estado != "pendiente")
+        if (trabajo.Estado != "pendiente" || trabajo.ParaReprogramar(DateTime.UtcNow))
             return BadRequest(new { error = "Este trabajo ya no acepta postulaciones." });
         if (trabajo.ClienteId == UserId)
             return BadRequest(new { error = "No podes postularte a tu propio trabajo." });
@@ -180,6 +180,8 @@ public class TrabajosController : ControllerBase
         if (trabajo.ClienteId != UserId) return Forbid();
         if (trabajo.Estado != "pendiente")
             return BadRequest(new { error = "El trabajo ya tiene un profesional asignado." });
+        if (trabajo.ParaReprogramar(DateTime.UtcNow))
+            return BadRequest(new { error = "La fecha del trabajo ya paso: hay que reprogramarlo." });
 
         var postulado = await _postulacionRepo.ExistsAsync(id, profesionalId);
         if (!postulado)
