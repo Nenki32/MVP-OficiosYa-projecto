@@ -25,5 +25,18 @@ public class TrabajoDto
     /// <summary>Dia y hora propuestos por el cliente para la visita.</summary>
     public DateTime? FechaVisita { get; set; }
 
+    /// <summary>
+    /// Si el profesional que consulta ya mando presupuesto. Solo se completa en
+    /// el listado del profesional; la agenda lo usa para mostrar lo presupuestado.
+    /// </summary>
+    public bool YaMePostule { get; set; }
+
+    /// <summary>
+    /// Monto cobrado, si el trabajo se completo. Completar registra el pago en
+    /// el mismo paso, asi que completado = abonado. Solo lo trae el listado del
+    /// profesional (sus propios trabajos).
+    /// </summary>
+    public decimal? MontoPagado { get; set; }
+
     public DateTime CreadoEn { get; set; }
 }

@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { api } from '../src/api/client'
 import { iconoDeServicio } from '../src/api/servicios'
-import { Calendario, formatFechaLarga, hoyIso } from '../src/components/Calendario'
+import { aFechaLocal, Calendario, formatFechaLarga, hoyIso } from '../src/components/Calendario'
 import { Pantalla } from '../src/components/Pantalla'
 import { colors, radius, spacing, typography } from '../src/theme'
 
@@ -17,13 +18,16 @@ const formatHora = (h: number) => `${String(h).padStart(2, '0')}:00`
 
 export default function Agendar() {
   const router = useRouter()
-  const { servicioId, servicioNombre } = useLocalSearchParams<{
+  // Con trabajoId la pantalla reprograma ese trabajo en vez de iniciar un pedido.
+  const { servicioId, servicioNombre, trabajoId } = useLocalSearchParams<{
     servicioId: string
     servicioNombre: string
+    trabajoId?: string
   }>()
 
   const [dia, setDia] = useState<string | undefined>()
   const [hora, setHora] = useState<number | null>(null)
+  const [error, setError] = useState('')
 
   const hoy = hoyIso()
   const esHoy = dia === hoy
@@ -31,8 +35,20 @@ export default function Agendar() {
 
   const puedeSeguir = dia != null && hora != null
 
-  const continuar = () => {
+  const continuar = async () => {
     if (!puedeSeguir) return
+    if (trabajoId) {
+      setError('')
+      try {
+        await api.patch(`/trabajos/${trabajoId}/fecha`, {
+          fechaVisita: aFechaLocal(dia!, hora!).toISOString(),
+        })
+        router.back()
+      } catch (e: any) {
+        setError(e?.message ?? 'No se pudo reprogramar el trabajo.')
+      }
+      return
+    }
     router.push({
       pathname: '/solicitar',
       params: { servicioId, servicioNombre, dia: dia!, hora: String(hora) },
@@ -107,6 +123,8 @@ export default function Agendar() {
           </>
         )}
 
+        {error !== '' && <Text style={s.error}>{error}</Text>}
+
         <Pressable
           onPress={continuar}
           disabled={!puedeSeguir}
@@ -117,7 +135,9 @@ export default function Agendar() {
           ]}
         >
           <Text style={s.continuarTexto}>
-            {puedeSeguir ? `Continuar · ${formatHora(hora!)}` : 'Elegí día y hora'}
+            {!puedeSeguir ? 'Elegí día y hora'
+              : trabajoId ? `Reprogramar · ${formatHora(hora!)}`
+              : `Continuar · ${formatHora(hora!)}`}
           </Text>
         </Pressable>
 
@@ -173,4 +193,5 @@ const s = StyleSheet.create({
   continuarTexto: { color: colors.textOnPrimary, fontSize: 16, fontWeight: '700' },
 
   nota: { ...typography.caption, textAlign: 'center', marginTop: spacing.sm },
+  error: { color: colors.danger, fontSize: 14, marginTop: spacing.md },
 })

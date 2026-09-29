@@ -45,4 +45,19 @@ public class Trabajo
     public Resenia? Resenia { get; set; }
     public ICollection<Postulacion> Postulaciones { get; set; } = new List<Postulacion>();
     public ICollection<CuentaCorriente> CuentaCorriente { get; set; } = new List<CuentaCorriente>();
+
+    /// <summary>Dias despues de la fecha de visita en que un pendiente pasa a "a_reprogramar".</summary>
+    public const int DiasParaReprogramar = 3;
+
+    /// <summary>
+    /// Pendiente (ningun presupuesto aceptado) cuya fecha paso hace mas de
+    /// <see cref="DiasParaReprogramar"/> dias. No se guarda en la base: se
+    /// calcula al leer, asi no hace falta un proceso que lo actualice.
+    /// </summary>
+    public bool ParaReprogramar(DateTime ahoraUtc) =>
+        Estado == "pendiente" && FechaVisita < ahoraUtc.AddDays(-DiasParaReprogramar);
+
+    /// <summary>El estado que ven cliente y profesional.</summary>
+    public string EstadoVisible(DateTime ahoraUtc) =>
+        ParaReprogramar(ahoraUtc) ? "a_reprogramar" : Estado;
 }

@@ -11,4 +11,7 @@ public class TrabajoConDistancia
 
     /// <summary>Metros hasta el profesional. Null si alguno no tiene ubicacion.</summary>
     public double? DistanciaMetros { get; set; }
+
+    /// <summary>Si el profesional que consulta ya mando presupuesto.</summary>
+    public bool YaMePostule { get; set; }
 }
