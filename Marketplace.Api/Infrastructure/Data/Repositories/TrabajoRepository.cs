@@ -60,6 +60,7 @@ public class TrabajoRepository : ITrabajoRepository
             .Include(t => t.Cliente)
             .Include(t => t.Profesional)
             .Include(t => t.Servicio)
+            .Include(t => t.Pago)
             // Los trabajos propios se ven siempre, sin importar rubro ni radio:
             // ya los tomo, no tendria sentido esconderlos si movio su zona.
             .Where(t => t.ProfesionalId == profesionalId ||

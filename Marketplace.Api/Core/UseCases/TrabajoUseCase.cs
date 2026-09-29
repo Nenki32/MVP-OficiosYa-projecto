@@ -105,6 +105,7 @@ public class TrabajoUseCase : ITrabajoService
         DireccionDestino = t.DireccionDestino,
         DistanciaKm = distanciaKm,
         FechaVisita = t.FechaVisita,
+        MontoPagado = t.Pago?.MontoTotal,
         CreadoEn = t.CreadoEn
     };
 

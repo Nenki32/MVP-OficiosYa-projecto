@@ -15,6 +15,8 @@ export interface Trabajo {
   fechaVisita: string | null
   /** Solo en el listado del profesional: si ya mandó presupuesto. */
   yaMePostule?: boolean
+  /** Monto cobrado, si se completó (completado = abonado). */
+  montoPagado?: number | null
   /** Km hasta el profesional. Null si alguno de los dos no tiene ubicación. */
   distanciaKm: number | null
   creadoEn: string

@@ -7,7 +7,7 @@ import { iconoDeServicio } from '../../src/api/servicios'
 import { Calendario, formatFechaLarga, hoyIso } from '../../src/components/Calendario'
 import { Pantalla } from '../../src/components/Pantalla'
 import type { Trabajo } from '../../src/components/TrabajoCard'
-import { colors, formatEstado, radius, spacing, typography } from '../../src/theme'
+import { colors, formatEstado, formatMonto, radius, spacing, typography } from '../../src/theme'
 
 /** Fecha ISO local ("AAAA-MM-DD") de una fecha con hora en UTC. */
 const diaDe = (iso: string) => {
@@ -127,6 +127,15 @@ export default function Agenda() {
                         </Text>
                       </View>
                     </View>
+
+                    {t.estado === 'completado' && t.montoPagado != null && (
+                      <View style={s.direccion}>
+                        <Ionicons name="cash-outline" size={13} color={colors.success} />
+                        <Text style={typography.caption}>
+                          Abonado · {formatMonto(t.montoPagado)} · {formatEstado(t.tipoPago)}
+                        </Text>
+                      </View>
+                    )}
 
                     {t.direccionDestino && (
                       <View style={s.direccion}>

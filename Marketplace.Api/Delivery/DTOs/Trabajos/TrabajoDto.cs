@@ -31,5 +31,12 @@ public class TrabajoDto
     /// </summary>
     public bool YaMePostule { get; set; }
 
+    /// <summary>
+    /// Monto cobrado, si el trabajo se completo. Completar registra el pago en
+    /// el mismo paso, asi que completado = abonado. Solo lo trae el listado del
+    /// profesional (sus propios trabajos).
+    /// </summary>
+    public decimal? MontoPagado { get; set; }
+
     public DateTime CreadoEn { get; set; }
 }
