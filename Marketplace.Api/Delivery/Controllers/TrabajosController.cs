@@ -191,4 +191,36 @@ public class TrabajosController : ControllerBase
 
         return Ok(new { message = "Profesional asignado correctamente." });
     }
+
+    /// <summary>
+    /// El cliente elige una fecha nueva para un trabajo "a reprogramar". Vuelve a
+    /// pendiente y se borran los presupuestos: con otra fecha los profesionales
+    /// tienen que presupuestar de nuevo.
+    /// </summary>
+    [HttpPatch("{id}/fecha")]
+    public async Task<IActionResult> Reprogramar(int id, [FromBody] ReprogramarRequest request)
+    {
+        var trabajo = await _db.Trabajos
+            .Include(t => t.Postulaciones)
+            .FirstOrDefaultAsync(t => t.Id == id);
+        if (trabajo == null)
+            return NotFound(new { error = "Trabajo no encontrado." });
+        if (trabajo.ClienteId != UserId) return Forbid();
+
+        var ahora = DateTime.UtcNow;
+        if (!trabajo.ParaReprogramar(ahora))
+            return BadRequest(new { error = "Solo se puede reprogramar un trabajo a reprogramar." });
+
+        var fecha = request.FechaVisita!.Value.ToUniversalTime();
+        if (fecha <= ahora)
+            return BadRequest(new { error = "La nueva fecha tiene que ser futura." });
+
+        _db.Postulaciones.RemoveRange(trabajo.Postulaciones);
+        trabajo.FechaVisita = fecha;
+        trabajo.DuracionEstimadaMin ??= 60;
+        trabajo.ActualizadoEn = ahora;
+        await _db.SaveChangesAsync();
+
+        return Ok(await _service.ObtenerAsync(id));
+    }
 }

@@ -159,7 +159,23 @@ export default function DetalleTrabajo() {
             </View>
 
             {esCliente ? (
-              trabajo.estado !== 'pendiente' ? (
+              trabajo.estado === 'a_reprogramar' ? (
+                <View style={s.bloque}>
+                  <Text style={typography.body}>
+                    La fecha pasó sin que aceptaras un presupuesto. Elegí una nueva: los
+                    profesionales van a tener que presupuestar de nuevo.
+                  </Text>
+                  <Pressable
+                    onPress={() => router.push({
+                      pathname: '/agendar',
+                      params: { servicioNombre: trabajo.servicioNombre, trabajoId: String(trabajo.id) },
+                    })}
+                    style={({ pressed }) => [s.enviar, pressed && s.enviarPresionado]}
+                  >
+                    <Text style={s.enviarTexto}>Elegir nueva fecha</Text>
+                  </Pressable>
+                </View>
+              ) : trabajo.estado !== 'pendiente' ? (
                 trabajo.profesionalNombre && (
                   <Fila icono="person-outline" texto={`Profesional: ${trabajo.profesionalNombre}`} />
                 )
