@@ -90,7 +90,7 @@ export async function describirUbicacion(
 
 /**
  * Convierte coordenadas en una direccion para precargar el formulario
- * ("Av. Cabildo 1234, Buenos Aires"). Es solo una sugerencia: el usuario la
+ * ("Av. Cabildo 1234, Rosario, Santa Fe"). Es solo una sugerencia: el usuario la
  * puede corregir a mano. Devuelve null si el sistema no encuentra la calle.
  */
 export async function direccionDeUbicacion(
@@ -106,8 +106,11 @@ export async function direccionDeUbicacion(
       : lugar.name
     if (!calle) return null
 
-    const ciudad = lugar.city ?? lugar.subregion ?? lugar.region
-    return ciudad ? `${calle}, ${ciudad}` : calle
+    // Formato: Calle numero, Localidad, Provincia. Si la localidad y la
+    // provincia se llaman igual (ej. CABA), va una sola vez.
+    const localidad = lugar.city ?? lugar.district ?? lugar.subregion
+    const provincia = lugar.region
+    return [...new Set([calle, localidad, provincia].filter((x): x is string => !!x))].join(', ')
   } catch {
     return null
   }
