@@ -81,6 +81,36 @@ Ciclo obligatorio:
 > Ejemplo de lo que NO hay que hacer (precedente): la rama feature/perfil-profesional terminó cargando el perfil profesional, la geolocalización, RLS y los calendarios — cuatro temas distintos en siete commits. Deberían haber sido cuatro ramas.
 
 =============================================================================
+2.b PLAN DE VERSIONES Y FLUJO DE RAMAS (Acordado 2026-09-29)
+=============================================================================
+
+No se hace un PR por cambio: cada versión es un PR a master que sube "version" en mobile/app.json y lleva su tag git (ej. v0.0.6).
+La app todavía no está en beta, por eso la numeración va en 0.0.x.
+
+Flujo por versión (una sola rama activa por vez, para probar en vivo en Expo Go sin cortar):
+1. feature/vX.Y.Z sale desde master y junta todos los commits de feature de la versión. Se prueba con git pull (Expo Go recarga solo; la API se reinicia solo si cambió el backend).
+2. Probadas las features, sale fix/vX.Y.Z DESDE la feature con los arreglos. Si hace falta, bug/vX.Y.Z sale del fix.
+3. Probados los arreglos, se suben a la rama feature (no van directo a master).
+4. El PR a master sale de la rama feature con todo: version en mobile/app.json + tag.
+Piden reiniciar Metro/Expo o la API: cambios en app.json, paquetes nativos nuevos y migraciones de base.
+
+| Versión | Contenido |
+|---------|-----------|
+| 0.0.5   | Base: lo mergeado hasta el PR #14 (tag sobre master). |
+| 0.0.6   | Peticiones del cliente: Mis peticiones, autocompletar dirección y fecha en el detalle (rama feature/mis-peticiones-meqlvj). |
+| 0.0.7   | Matrículas: rubros regulados, estado de verificación, bloqueo de ofertas sin verificar, revisión manual y el 500 al registrar un premium sin matrícula. |
+| 0.0.8   | Perfil y avisos: foto de perfil, campana de notificaciones del profesional y editar una petición pendiente. |
+| 0.0.9   | Disponibilidad y turnos: tareas con duración, horario laboral y franjas sin solapamiento (Bloque 4). |
+| 0.0.10  | Suscripciones: planes, "Mi suscripción" y baja de CuentaCorriente, Deudor y la comisión del 15 %. |
+| 0.0.11  | Cierre del trabajo: código de 4 dígitos que el cliente da al profesional; sin código, 72 h para reclamar antes de completarse solo. Reclamo con motivos y foto opcional que revisa un admin (no afecta la reputación mientras tanto). Reseña solo con trabajo completado, réplica pública del profesional y ficha con matrícula y reseñas arriba. |
+| 0.0.12  | Seguridad: rate limiting, refresh tokens, concurrencia al aceptar, validación de montos y CORS. |
+| 0.0.13  | Tiempo real y push (Bloque 5; requiere development build, Expo Go no soporta push ni mapas). |
+| 0.0.14  | Calidad y diseño: tests, paginación, CI y pulido visual. |
+| 0.0.15  | Reprogramación negociada con motivos y reputación. |
+| 0.1.0   | Beta: la app cerrada, para probar con usuarios reales. |
+| 1.0.0   | Lanzamiento, con la web de producción en SiteWeb/ (Bloque 8). |
+
+=============================================================================
 3. DÓNDE ESTÁ EL PROYECTO HOY Y QUÉ YA SE COMPLETÓ (2026-08-09 a 2026-08-11)
 =============================================================================
 
@@ -156,7 +186,7 @@ TRAMPAS TÉCNICAS QUE YA COSTARON TIEMPO:
 [ ] 4. La franja de "trabajos sin fecha" de la agenda no tiene acción:
     - Es solo texto. Debería poder tocarse para abrir el trabajo y asignarle una fecha.
 
-LO QUE SIGUE, EN ORDEN SUGERIDO:
+LO QUE SIGUE, EN ORDEN SUGERIDO (reemplazado por el plan de versiones de la sección 2.b):
 1. Detalle del trabajo y envío de presupuesto desde la app (POST /api/trabajos/{id}/postularse) + Revelación por etapas de direcciones (Seguridad #1).
 2. Verificación de matrículas (marcar qué rubros son regulados, estado de verificación por profesional, bloqueo de oferta sin verificar y circuito de revisión manual inicial). Ojo: el mensaje "Tu perfil está completo" hoy solo valida rubros, ubicación y radio, no identidad ni matrícula (induce a error).
 3. Foto de perfil (usando Supabase Storage).
