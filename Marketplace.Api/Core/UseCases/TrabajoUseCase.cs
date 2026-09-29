@@ -69,9 +69,19 @@ public class TrabajoUseCase : ITrabajoService
                 .ToList();
         }
 
-        var trabajos = rol == "cliente"
-            ? await _trabajoRepo.GetByClienteAsync(usuarioId)
-            : await _trabajoRepo.GetPendientesAsync();
+        if (rol == "cliente")
+        {
+            var propios = await _trabajoRepo.GetByClienteAsync(usuarioId);
+            return propios.Select(t =>
+                {
+                    var dto = MapToLista(t, null);
+                    dto.CantidadPresupuestos = t.Postulaciones.Count;
+                    return dto;
+                })
+                .ToList();
+        }
+
+        var trabajos = await _trabajoRepo.GetPendientesAsync();
 
         return trabajos.Select(t => MapToLista(t, null)).ToList();
     }
@@ -296,6 +306,7 @@ public class TrabajoUseCase : ITrabajoService
         Estado = t.EstadoVisible(DateTime.UtcNow),
         Descripcion = t.Descripcion,
         TipoPago = t.TipoPago,
+        FechaVisita = t.FechaVisita,
         LatitudDestino = t.Ubicacion?.Y,
         LongitudDestino = t.Ubicacion?.X,
         DireccionDestino = t.DireccionDestino,

@@ -38,5 +38,11 @@ public class TrabajoDto
     /// </summary>
     public decimal? MontoPagado { get; set; }
 
+    /// <summary>
+    /// Cuantos presupuestos recibio. Solo lo trae el listado del cliente: a un
+    /// profesional no le corresponde saber cuantos competidores tiene.
+    /// </summary>
+    public int CantidadPresupuestos { get; set; }
+
     public DateTime CreadoEn { get; set; }
 }

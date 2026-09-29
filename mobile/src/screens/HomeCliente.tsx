@@ -1,10 +1,16 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useCallback, useState } from 'react'
+import {
+  ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View,
+} from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
+import { api } from '../api/client'
 import type { Servicio } from '../api/servicios'
 import { useAuth } from '../auth/AuthContext'
 import { Pantalla } from '../components/Pantalla'
 import { SelectorRubro } from '../components/SelectorRubro'
+import { TrabajoCard, type Trabajo } from '../components/TrabajoCard'
+import { useRecargaEnFoco } from '../hooks/useRecargaEnFoco'
 import { colors, radius, spacing, typography } from '../theme'
 
 export function HomeCliente() {
@@ -12,6 +18,25 @@ export function HomeCliente() {
   const router = useRouter()
 
   const primerNombre = usuario?.nombre?.split(' ')[0] ?? ''
+
+  const [peticiones, setPeticiones] = useState<Trabajo[]>([])
+  const [cargando, setCargando] = useState(true)
+  const [refrescando, setRefrescando] = useState(false)
+  const [error, setError] = useState('')
+
+  const cargar = useCallback(async () => {
+    try {
+      setPeticiones(await api.get<Trabajo[]>('/trabajos'))
+      setError('')
+    } catch (e: any) {
+      setError(e?.message ?? 'No se pudieron cargar tus peticiones.')
+    } finally {
+      setCargando(false)
+      setRefrescando(false)
+    }
+  }, [])
+
+  useRecargaEnFoco(cargar)
 
   // Elegir un rubro es, en si mismo, la accion: lleva directo al alta.
   // El selector no recuerda nada (siempre recibe null), asi que al volver
@@ -31,7 +56,16 @@ export function HomeCliente() {
         </Pressable>
       }
     >
-      <ScrollView contentContainerStyle={s.contenido}>
+      <ScrollView
+        contentContainerStyle={s.contenido}
+        refreshControl={
+          <RefreshControl
+            refreshing={refrescando}
+            onRefresh={() => { setRefrescando(true); cargar() }}
+            tintColor={colors.primary}
+          />
+        }
+      >
         <Text style={typography.heading}>¿En qué podemos ayudarte?</Text>
         <Text style={typography.caption}>
           Elegí el rubro y te conectamos con profesionales cerca tuyo.
@@ -45,20 +79,26 @@ export function HomeCliente() {
 
         <Text style={typography.heading}>Mis peticiones</Text>
 
-        <Pressable
-          onPress={() => router.push('/mis-peticiones')}
-          style={({ pressed }) => [s.card, pressed && s.cardPresionada]}
-        >
-          <Text style={typography.bodyStrong}>Ver mis solicitudes</Text>
+        {cargando ? (
+          <ActivityIndicator style={s.cargando} color={colors.primary} />
+        ) : peticiones.length === 0 ? (
           <Text style={typography.caption}>
-            Seguí el estado de los trabajos que pediste y revisá los anteriores.
+            {error || 'Todavía no hiciste ninguna petición. Elegí un rubro para empezar.'}
           </Text>
-
-          <View style={s.accion}>
-            <Text style={s.accionTexto}>Ir a mis peticiones</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.primaryDark} />
+        ) : (
+          <View style={s.lista}>
+            {error !== '' && <Text style={s.errorTexto}>{error}</Text>}
+            {peticiones.map(t => (
+              <Pressable
+                key={t.id}
+                onPress={() => router.push(`/trabajo/${t.id}`)}
+                style={({ pressed }) => pressed && s.cardPresionada}
+              >
+                <TrabajoCard trabajo={t} verContraparte="profesional" />
+              </Pressable>
+            ))}
           </View>
-        </Pressable>
+        )}
       </ScrollView>
     </Pantalla>
   )
@@ -80,24 +120,8 @@ const s = StyleSheet.create({
     marginVertical: spacing.lg,
   },
 
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    gap: spacing.xs,
-  },
+  cargando: { marginTop: spacing.md },
+  lista: { gap: spacing.sm, marginTop: spacing.xs },
   cardPresionada: { opacity: 0.85 },
-  accion: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.primarySoft,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    marginTop: spacing.sm,
-  },
-  accionTexto: { color: colors.primaryDark, fontSize: 14, fontWeight: '700' },
+  errorTexto: { color: colors.danger, fontSize: 14 },
 })

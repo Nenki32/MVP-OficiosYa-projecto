@@ -30,6 +30,7 @@ public class TrabajoRepository : ITrabajoRepository
             .Include(t => t.Cliente)
             .Include(t => t.Profesional)
             .Include(t => t.Servicio)
+            .Include(t => t.Postulaciones)
             .Where(t => t.ClienteId == clienteId)
             .OrderByDescending(t => t.CreadoEn)
             .ToListAsync();

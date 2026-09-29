@@ -17,6 +17,8 @@ export interface Trabajo {
   yaMePostule?: boolean
   /** Monto cobrado, si se completó (completado = abonado). */
   montoPagado?: number | null
+  /** Solo en el listado del cliente: cuántos presupuestos recibió. */
+  cantidadPresupuestos?: number
   /** Km hasta el profesional. Null si alguno de los dos no tiene ubicación. */
   distanciaKm: number | null
   creadoEn: string
@@ -69,6 +71,18 @@ export function TrabajoCard({
           <Text style={typography.caption} numberOfLines={1}>
             {trabajo.direccionDestino}
           </Text>
+        )}
+
+        {/* Presupuestar no cambia el estado: sin esto el cliente no se entera. */}
+        {trabajo.estado === 'pendiente' && !!trabajo.cantidadPresupuestos && (
+          <View style={s.distancia}>
+            <Ionicons name="pricetag-outline" size={12} color={colors.primaryDark} />
+            <Text style={s.distanciaTexto}>
+              {trabajo.cantidadPresupuestos === 1
+                ? '1 presupuesto'
+                : `${trabajo.cantidadPresupuestos} presupuestos`}
+            </Text>
+          </View>
         )}
 
         {mostrarDistancia && (
