@@ -16,8 +16,10 @@ public class RegisterProfesionalRequest
     [MaxLength(50)]
     public string? Telefono { get; set; }
 
-    [MaxLength(20)]
-    public string? Dni { get; set; }
+    // Obligatorio para el profesional: la base lo exige (CK_Usuarios_dni) y
+    // sin esto el alta sin DNI llegaba a la base y devolvia 500 en vez de 400.
+    [Required, MaxLength(20)]
+    public string Dni { get; set; } = null!;
 
     [Required]
     public string NivelProfesional { get; set; } = "standard";

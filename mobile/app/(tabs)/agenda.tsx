@@ -77,9 +77,11 @@ export default function Agenda() {
                 </Text>
               </View>
               {sinFecha.map(t => (
-                <Text key={t.id} style={s.sinFechaItem}>
-                  • {t.servicioNombre} — {t.clienteNombre}
-                </Text>
+                <Pressable key={t.id} onPress={() => router.push(`/trabajo/${t.id}`)} hitSlop={4}>
+                  <Text style={s.sinFechaItem}>
+                    • {t.servicioNombre} — {t.clienteNombre} ›
+                  </Text>
+                </Pressable>
               ))}
             </View>
           )}
