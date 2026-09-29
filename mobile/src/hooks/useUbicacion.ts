@@ -90,7 +90,7 @@ export async function describirUbicacion(
 
 /**
  * Convierte coordenadas en una direccion para precargar el formulario
- * ("Av. Cabildo 1234, Rosario, Santa Fe"). Es solo una sugerencia: el usuario la
+ * ("Av. Cabildo 1234, Belgrano, CABA"). Es solo una sugerencia: el usuario la
  * puede corregir a mano. Devuelve null si el sistema no encuentra la calle.
  */
 export async function direccionDeUbicacion(
@@ -106,12 +106,27 @@ export async function direccionDeUbicacion(
       : lugar.name
     if (!calle) return null
 
-    // Formato: Calle numero, Localidad, Provincia. Si la localidad y la
-    // provincia se llaman igual (ej. CABA), va una sola vez.
-    const localidad = lugar.city ?? lugar.district ?? lugar.subregion
-    const provincia = lugar.region
-    return [...new Set([calle, localidad, provincia].filter((x): x is string => !!x))].join(', ')
+    // Formato: Calle numero, Barrio o localidad, CABA/GBA/Provincia.
+    const provincia = abreviarProvincia(lugar.region)
+    const localidad = [lugar.district, lugar.city, lugar.subregion]
+      // "Buenos Aires" como localidad no dice nada: es la provincia repetida.
+      .find(x => !!x && !esBuenosAires(x) && abreviarProvincia(x) !== provincia)
+    return [calle, localidad, provincia].filter(Boolean).join(', ')
   } catch {
     return null
   }
+}
+
+const normalizar = (x: string) =>
+  x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+
+const esBuenosAires = (x: string) => normalizar(x).includes('buenos aires')
+
+/** "Ciudad Autónoma de Buenos Aires" -> CABA, "Buenos Aires" (provincia) -> GBA. */
+function abreviarProvincia(region: string | null): string | null {
+  if (!region) return null
+  const r = normalizar(region)
+  if (r.includes('autonoma') || r === 'caba' || r.includes('capital federal')) return 'CABA'
+  if (r.includes('buenos aires')) return 'GBA'
+  return region
 }
