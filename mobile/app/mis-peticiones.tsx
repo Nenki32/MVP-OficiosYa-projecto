@@ -3,10 +3,11 @@ import {
   ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { useFocusEffect, useRouter } from 'expo-router'
+import { useRouter } from 'expo-router'
 import { api } from '../src/api/client'
 import { Pantalla } from '../src/components/Pantalla'
 import { TrabajoCard, type Trabajo } from '../src/components/TrabajoCard'
+import { useRecargaEnFoco } from '../src/hooks/useRecargaEnFoco'
 import { colors, spacing, typography } from '../src/theme'
 
 export default function MisPeticiones() {
@@ -28,7 +29,7 @@ export default function MisPeticiones() {
     }
   }, [])
 
-  useFocusEffect(useCallback(() => { cargar() }, [cargar]))
+  useRecargaEnFoco(cargar)
 
   return (
     <Pantalla

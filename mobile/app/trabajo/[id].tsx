@@ -4,12 +4,13 @@ import {
   ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { api, ApiError } from '../../src/api/client'
 import { iconoDeServicio } from '../../src/api/servicios'
 import { useAuth } from '../../src/auth/AuthContext'
 import { Pantalla } from '../../src/components/Pantalla'
 import type { Trabajo } from '../../src/components/TrabajoCard'
+import { useRecargaEnFoco } from '../../src/hooks/useRecargaEnFoco'
 import { colors, formatEstado, formatMonto, radius, spacing, typography } from '../../src/theme'
 
 interface TrabajoDetalle extends Trabajo {
@@ -56,7 +57,8 @@ export default function DetalleTrabajo() {
     }
   }, [id])
 
-  useFocusEffect(useCallback(() => { cargar() }, [cargar]))
+  // El cliente espera presupuestos: mientras este pendiente, se sondea.
+  useRecargaEnFoco(cargar, esCliente && trabajo?.estado === 'pendiente')
 
   const yaPostulado = enviado || !!trabajo?.yaMePostule ||
     !!trabajo?.postulaciones?.some(p => p.profesionalId === usuario?.id)
