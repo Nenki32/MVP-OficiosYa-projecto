@@ -154,12 +154,13 @@ public class TrabajoUseCase : ITrabajoService
         var trabajo = await _trabajoRepo.GetByIdAsync(id)
             ?? throw new KeyNotFoundException("Trabajo no encontrado.");
 
+        // "aceptado" solo se alcanza con POST /asignar (el cliente elige una postulacion)
+        // y "completado" solo con POST /completar, que registra el pago.
         var transicionesValidas = new Dictionary<string, string[]>
         {
-            { "pendiente", new[] { "aceptado", "cancelado" } },
+            { "pendiente", new[] { "cancelado" } },
             { "aceptado", new[] { "viajando", "cancelado" } },
-            { "viajando", new[] { "en_progreso", "cancelado" } },
-            { "en_progreso", new[] { "completado" } }
+            { "viajando", new[] { "en_progreso", "cancelado" } }
         };
 
         if (!transicionesValidas.TryGetValue(trabajo.Estado, out var permitidos) ||
@@ -167,17 +168,12 @@ public class TrabajoUseCase : ITrabajoService
             throw new InvalidOperationException(
                 $"Transicion invalida: {trabajo.Estado} -> {nuevoEstado}");
 
-        if (nuevoEstado == "aceptado" && trabajo.ProfesionalId == null)
-            trabajo.ProfesionalId = usuarioId;
-        else if (nuevoEstado == "aceptado" && trabajo.ProfesionalId != usuarioId)
-            throw new UnauthorizedAccessException("Otro profesional ya acepto este trabajo.");
-
         if (nuevoEstado == "cancelado" && trabajo.ProfesionalId != usuarioId && trabajo.ClienteId != usuarioId)
             throw new UnauthorizedAccessException("No puedes cancelar este trabajo.");
 
-        // viajando / en_progreso / completado: solo el profesional asignado.
+        // viajando / en_progreso: solo el profesional asignado.
         // Sin esto cualquiera movia el estado y recibia el detalle completo.
-        if (nuevoEstado is not ("aceptado" or "cancelado") && trabajo.ProfesionalId != usuarioId)
+        if (nuevoEstado != "cancelado" && trabajo.ProfesionalId != usuarioId)
             throw new UnauthorizedAccessException("Solo el profesional asignado puede cambiar este estado.");
 
         trabajo.Estado = nuevoEstado;

@@ -100,7 +100,6 @@ export default function TrabajoDetalle() {
     pendiente: esProfesionalAsignado ? ['cancelado'] : esCliente ? ['cancelado'] : [],
     aceptado: esProfesionalAsignado ? ['viajando', 'cancelado'] : esCliente ? ['cancelado'] : [],
     viajando: ['en_progreso', 'cancelado'],
-    en_progreso: esProfesionalAsignado ? ['completado'] : [],
   }
 
   return (

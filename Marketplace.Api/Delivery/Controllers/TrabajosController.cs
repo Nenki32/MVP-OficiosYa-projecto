@@ -109,6 +109,14 @@ public class TrabajosController : ControllerBase
         {
             return NotFound(new { error = "Trabajo no encontrado." });
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     [HttpPost("{id}/postularse")]
