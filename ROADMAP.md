@@ -1,382 +1,268 @@
 # ROADMAP — OficiosYa (Marketplace de servicios del hogar)
 
-> Última actualización consolidada: Cambio a modelo de suscripción, estado real en Supabase (São Paulo) + Expo SDK 54, directrices de seguridad y Plan de Plataforma Web.
-> Estrategia de Producto (Secuencial):
-> 1. Fase Actual (Mobile-First): Finalizar al 100 % el diseño y funcionamiento de la App Mobile en Expo (mobile/). Mientras dure esta etapa, frontend/ solo actúa como banco de pruebas técnico.
-> 2. Fase Siguiente (Plataforma Web): Una vez cerrado el diseño y flujo de la App Mobile, construir y diseñar la Página Web de producción (ver Bloque 8 al final de este documento).
+> **Estado al día:** versión en curso **[COMPLETAR, ej. 0.0.6]** · última revisión **[COMPLETAR fecha]**.
+> La convención de ramas está en CONVENCIONES.md, la seguridad en SEGURIDAD.md y el entorno local y las trampas técnicas en DESPLIEGUE.md.
 
-=============================================================================
-1. CAMBIO DE REGLAS DE NEGOCIO: SUSCRIPCIÓN AL PROFESIONAL (2026-08-10)
-=============================================================================
+**Estrategia de producto (secuencial):**
+1. **Fase actual (mobile-first):** terminar al 100 % el diseño y funcionamiento de la app en Expo (`mobile/`). Mientras tanto, `frontend/` solo es banco de pruebas técnico.
+2. **Fase siguiente (plataforma web):** con la app cerrada, construir la web de producción (Bloque 8).
 
-El producto pasó de cobrar comisión por trabajo a cobrar suscripción al profesional.
-Esto invalida código que hoy funciona. Leer esta sección antes de tocar nada relacionado con pagos.
+---
 
-MODELO NUEVO (El cliente no paga nunca):
-Los ingresos salen exclusivamente del lado profesional:
-- Suscripción mensual/anual: Acceso a los trabajos publicados y envío de presupuestos, ilimitados o según plan.
-- Comisión por contacto (lead): En ciertos planes, importe fijo por establecer contacto directo con un cliente.
+## 1. Objetivos 2026 (el norte del producto)
 
-QUÉ QUEDA OBSOLETO (Es código escrito que ahora está mal — A eliminar/reemplazar):
-- CuentaCorriente (ledger de deudas): Sin sentido, no hay comisión por trabajo.
-- Pagos.comision y el 15 % en CompletarAsync (TrabajoUseCase:134-190): A eliminar.
-- EstadoUsuario.Deudor y PagarDeudaAsync: Sin sentido; se reemplaza por estado de suscripción.
-- CuentaCorrienteUseCase y sus endpoints: A reemplazar.
-- Pantalla "Mi saldo" (web/mobile): A reemplazar por "Mi suscripción".
-- Bloque 4.5 completo (modelo de cobros por comisión e híbrido MP): Descartado.
-> Ironía útil: El ledger append-only está bien construido y sirve igual para registrar movimientos de suscripción. La estructura se aprovecha; lo que cambia es qué significa cada asiento.
+### Producto
+- Ser el lugar más confiable para contratar un oficio en el barrio: más seguro que Facebook Marketplace o MercadoLibre porque la confianza es verificable (matrícula validada + reseñas solo de trabajos con doble confirmación).
+- Cubrir los dos modos reales del hogar: urgencia (gas, destapación, cerrajería) y programado (reforma, pintura, instalación).
+- El cliente no paga nunca; el ingreso viene de la suscripción del profesional.
 
-QUÉ HAY QUE CONSTRUIR EN EL NUEVO MODELO:
-- [ ] Suscripciones: plan, precio, vigencia (desde/hasta), estado, medio de pago.
-- [ ] Planes: nombre, precio mensual/anual, límite de presupuestos, si incluye rubros regulados.
-- [ ] Bloqueo de envío de presupuestos si la suscripción está vencida.
-- [ ] Integración de cobro recurrente (Mercado Pago admite suscripciones).
-- [ ] Migración: dar de baja CuentaCorriente sin perder el historial.
+### Arquitectura
+- Una sola fuente de verdad: las reglas de negocio se calculan en la API, nunca duplicadas en mobile ni web (como ya se hace con `faltantes` del perfil).
+- Reducir dependencias frágiles: pasar de Expo Go a development build y no depender de que el plan gratuito de Supabase esté activo para operar.
+- Tests y CI sobre los invariantes críticos antes de tener usuarios reales.
 
-CAMBIOS EN EL FLUJO DEL TRABAJO:
-- [ ] El cliente publica con presupuesto estimado y plazo: Trabajos necesita presupuesto_estimado y plazo_deseado (hoy no existen).
-- [ ] Ubicación aproximada al publicar, exacta recién al asignar (ver sección de revelación por etapas).
-- [ ] Doble confirmación de trabajo terminado:
-      * Nuevo estado pendiente_confirmacion entre en_progreso y completado.
-      * Campos confirmado_cliente y confirmado_profesional.
-      * Estado completado solo cuando ambos confirmaron.
-- [ ] La reseña se habilita recién con la doble confirmación (UQ_Resenias_trabajo): No se puede reseñar un trabajo que no ocurrió. Puntuación 1–5 estrellas + comentario sobre cómo resolvió.
+### Lanzamiento
+- Lanzar por barrio, no por ciudad: densidad de profesionales antes que alcance.
 
-EMPRESAS, NO SOLO PERSONAS:
-El modelo menciona "perfil de la empresa" además del perfil del profesional. Hoy Usuarios solo contempla personas físicas en la UI.
-- [ ] Decidir: ¿Empresas como entidad propia con profesionales asociados, o un tipo de perfil dentro de Usuarios?
-- [ ] Definir impacto: Una empresa con varios operarios cambia el modelo de asignación y de reputación (¿la reseña es de la empresa o del operario que fue?).
+### Principios (para decidir lo que no está escrito)
+- Ante la duda, la privacidad del cliente gana: mostrar menos datos, no más.
+- Confianza verificable antes que crecimiento: no se habilita un rubro regulado sin verificación, aunque eso frene altas.
+- Simple primero: una funcionalidad terminada vale más que tres a medias.
 
-VERIFICACIÓN DE MATRÍCULAS — AHORA ES REQUISITO, NO MEJORA:
-Con el modelo nuevo pasa a ser un factor central del producto: la plataforma verifica credenciales ANTES de permitir ofertar en rubros regulados.
-- [ ] Marcar qué rubros son regulados en el catálogo de Servicios.
-- [ ] Estado de verificación por profesional: pendiente / verificado / rechazado.
-- [ ] Bloquear el envío de presupuestos en rubros regulados sin verificación.
-- [ ] Circuito de revisión (manual al principio).
+---
 
-GPS EN LUGAR DE COORDENADAS PRECARGADAS:
-- [ ] Pedir permiso de ubicación en la app, con explicación de para qué se usa.
-- [ ] Si el usuario lo niega, degradar con elegancia: geocodificar la dirección ingresada a mano o mostrar aviso claro.
-- [ ] No hace falta una tabla de localidades con coordenadas precargadas: la ubicación sale del dispositivo, simplificando el modelo de datos.
+## 2. Decisiones abiertas
 
-=============================================================================
-2. CONVENCIÓN DE RAMAS (Acordada 2026-08-11)
-=============================================================================
+Nada de esta lista se implementa sin decisión explícita (regla Karpathy #1).
 
-"Una rama, una cosa." Es la regla de la que se desprende todo lo demás.
-- Funcionalidad nueva: Rama feature/<nombre> desde master.
-- Otra funcionalidad distinta: OTRA rama feature/, no seguir en la anterior.
-- Corregir algo de una funcionalidad: fix/ de esa misma funcionalidad, para que no se contradigan.
-- Solo documentación: docs/<tema>.
+- [ ] **Versión para la postulación desde la app y la triangulación** (Bloqueo #1 y la variante abierta del hallazgo 1 de SEGURIDAD.md): no figuran en la tabla de versiones. Sugerencia: la versión en curso. La revelación por etapas y el filtro de postulaciones ya están en el código.
+- [ ] **Carpeta de la web de producción:** el Bloque 8 dice `frontend/`; la versión 1.0.0 mencionaba `SiteWeb/`. Unificar.
+- [ ] **Empresas:** ¿entidad propia con profesionales asociados, o tipo de perfil dentro de Usuarios? Afecta asignación y reputación (¿la reseña es de la empresa o del operario que fue?).
+- [ ] **Sesión:** refresh tokens propios + lista de revocación, o migrar a Supabase Auth (login con Google, recuperación de contraseña, OTP por SMS).
+- [ ] **Datos tras completar el trabajo:** revocar la dirección exacta o conservarla durante la ventana de disputa y luego anonimizar.
 
-No apilar trabajo no relacionado en una rama abierta (mezclar temas hace que el PR sea imposible de revisar de a partes, no se pueda revertir una funcionalidad sin arrastrar otras y ensucie el historial).
+---
 
-Ciclo obligatorio:
-  git checkout master ; git pull
-  git checkout -b feature/lo-que-sea
-  # trabajar, commitear
-  git push -u origin feature/lo-que-sea
-  # PR -> master, mergear, borrar la rama
+## 3. Plan de versiones (acordado 2026-09-29)
 
-> Ejemplo de lo que NO hay que hacer (precedente): la rama feature/perfil-profesional terminó cargando el perfil profesional, la geolocalización, RLS y los calendarios — cuatro temas distintos en siete commits. Deberían haber sido cuatro ramas.
-
-=============================================================================
-2.b PLAN DE VERSIONES Y FLUJO DE RAMAS (Acordado 2026-09-29)
-=============================================================================
-
-No se hace un PR por cambio: cada versión es un PR a master que sube "version" en mobile/app.json y lleva su tag git (ej. v0.0.6).
-La app todavía no está en beta, por eso la numeración va en 0.0.x.
-
-Flujo por versión (una sola rama activa por vez, para probar en vivo en Expo Go sin cortar):
-1. feature/vX.Y.Z sale desde master y junta todos los commits de feature de la versión. Se prueba con git pull (Expo Go recarga solo; la API se reinicia solo si cambió el backend).
-2. Probadas las features, sale fix/vX.Y.Z DESDE la feature con los arreglos. Si hace falta, bug/vX.Y.Z sale del fix.
-3. Probados los arreglos, se suben a la rama feature (no van directo a master).
-4. El PR a master sale de la rama feature con todo: version en mobile/app.json + tag.
-Piden reiniciar Metro/Expo o la API: cambios en app.json, paquetes nativos nuevos y migraciones de base.
+No se hace un PR por cambio: cada versión es un PR a master que sube `version` en `mobile/app.json` y lleva su tag git (ej. `v0.0.6`). La app todavía no está en beta, por eso la numeración va en 0.0.x. El flujo de ramas está en CONVENCIONES.md.
 
 | Versión | Contenido |
-|---------|-----------|
-| 0.0.5   | Base: lo mergeado hasta el PR #14 (tag sobre master). |
-| 0.0.6   | Peticiones del cliente: Mis peticiones, autocompletar dirección y fecha en el detalle (rama feature/mis-peticiones-meqlvj). |
-| 0.0.7   | Matrículas: rubros regulados, estado de verificación, bloqueo de ofertas sin verificar, revisión manual y el 500 al registrar un premium sin matrícula. |
-| 0.0.8   | Perfil y avisos: foto de perfil, campana de notificaciones del profesional y editar una petición pendiente. |
-| 0.0.9   | Disponibilidad y turnos: tareas con duración, horario laboral y franjas sin solapamiento (Bloque 4). |
-| 0.0.10  | Suscripciones: planes, "Mi suscripción" y baja de CuentaCorriente, Deudor y la comisión del 15 %. |
-| 0.0.11  | Cierre del trabajo: código de 4 dígitos que el cliente da al profesional; sin código, 72 h para reclamar antes de completarse solo. Reclamo con motivos y foto opcional que revisa un admin (no afecta la reputación mientras tanto). Reseña solo con trabajo completado, réplica pública del profesional y ficha con matrícula y reseñas arriba. |
-| 0.0.12  | Seguridad: rate limiting, refresh tokens, concurrencia al aceptar, validación de montos y CORS. |
-| 0.0.13  | Tiempo real y push (Bloque 5; requiere development build, Expo Go no soporta push ni mapas). |
-| 0.0.14  | Calidad y diseño: tests, paginación, CI y pulido visual. |
-| 0.0.15  | Reprogramación negociada con motivos y reputación. |
-| 0.1.0   | Beta: la app cerrada, para probar con usuarios reales. |
-| 1.0.0   | Lanzamiento, con la web de producción en SiteWeb/ (Bloque 8). |
+|---|---|
+| 0.0.5 | Base: lo mergeado hasta el PR #14 (tag sobre master). |
+| 0.0.6 | Peticiones del cliente: Mis peticiones, autocompletar dirección y fecha en el detalle (rama `feature/mis-peticiones-meqlvj`). |
+| 0.0.7 | Matrículas: rubros regulados, estado de verificación, bloqueo de ofertas sin verificar, revisión manual y el 500 al registrar un premium sin matrícula. |
+| 0.0.8 | Perfil y avisos: foto de perfil (con restricción de archivos, EXIF eliminado y políticas RLS de Storage, SEGURIDAD.md §3 controles 3, 4 y 16), campana de notificaciones del profesional y editar una petición pendiente. |
+| 0.0.9 | Disponibilidad y turnos: tareas con duración, horario laboral y franjas sin solapamiento (Bloque 4). |
+| 0.0.10 | Suscripciones: planes, "Mi suscripción" y baja de CuentaCorriente, Deudor y la comisión del 15 %. |
+| 0.0.11 | Cierre del trabajo: código de 4 dígitos que el cliente da al profesional (generado en el backend con `RandomNumberGenerator`, comparado en tiempo constante y con límite de intentos; SEGURIDAD.md §4); sin código, 72 h para reclamar antes de completarse solo. Reclamo con motivos y foto opcional que revisa un admin (no afecta la reputación mientras tanto). Reseña solo con trabajo completado, réplica pública del profesional y ficha con matrícula y reseñas arriba. |
+| 0.0.12 | Seguridad: rate limiting, refresh tokens (aleatorios y guardados hasheados), concurrencia al aceptar, validación de montos y CORS, y cerrar en ✅ todos los controles del checklist de SEGURIDAD.md §3 que apliquen a la app. |
+| 0.0.13 | Tiempo real y push (Bloque 5; requiere development build, Expo Go no soporta push ni mapas). |
+| 0.0.14 | Calidad y diseño: cobertura amplia de tests, paginación, CI, pulido visual y **refactor de estilos**: mover `mobile/src/theme.ts` a `mobile/src/styles/theme.ts` y sacar los `StyleSheet.create` de las 15 pantallas existentes a `styles/pantallas/` (CONVENCIONES.md §5). |
+| 0.0.15 | Reprogramación negociada con motivos y reputación. |
+| 0.1.0 | Beta: la app cerrada, para probar con usuarios reales. |
+| 1.0.0 | Lanzamiento, con la web de producción (Bloque 8). |
 
-=============================================================================
-3. DÓNDE ESTÁ EL PROYECTO HOY Y QUÉ YA SE COMPLETÓ (2026-08-09 a 2026-08-11)
-=============================================================================
+**Regla de tests por versión:** cada versión que toca un invariante (privacidad, pagos, verificación de matrículas) incluye su test en la misma versión. La 0.0.14 suma cobertura amplia y CI, pero no es la primera vez que se testea.
 
-INFRAESTRUCTURA Y BASE DE DATOS (SUPABASE + .NET 9):
-- [x] Estructura Clean Architecture en .NET 9 (Toolchain .NET 9.0.316, Node 22.16), EF Core 9.
-- [x] Proyecto Supabase activo en South America (São Paulo, PostgreSQL 17.6) con extensiones postgis y btree_gist creadas.
-- [x] Proveedor EF migrado a Npgsql.EntityFrameworkCore.PostgreSQL + NetTopologySuite con EnableRetryOnFailure(3).
-- [x] Esquema bajo EF Migrations (InitialCreate y siguientes), catálogo de 10 servicios sembrado y usuarios de prueba recreados (todos reciben token JWT).
-- [x] RLS habilitado en las 9 tablas del esquema public (migración HabilitarRls): activo con ENABLE y sin FORCE, sin políticas. La API .NET no se ve afectada porque conecta con el rol postgres (dueño con BYPASSRLS); los roles anon y authenticated de PostgREST quedan bloqueados y no ven ninguna fila.
+---
 
-PERFIL PROFESIONAL (BACKEND + APP):
-- [x] Usuarios sumó: tipo_perfil (persona/empresa, ortogonal al rol), razon_social, cuit, descripcion, ubicacion (geography(Point, 4326) + índice GiST), radio_cobertura_km y disponible.
-- [x] Endpoints en /api/profesionales/me/: perfil (GET/PUT), ubicacion (PUT), servicios (PUT).
-- [x] El perfil devuelve faltantes: lista de textos con lo que falta completar, calculada en el servidor para que app y web no se contradigan.
-- [x] App: app/profesional/{editar,rubros,zona}.tsx y el tab de perfil como centro del onboarding.
+## 4. Estado actual del proyecto
 
-GEOLOCALIZACIÓN OPERATIVA:
-- [x] Trabajos.latitud_destino/longitud_destino migrados a ubicacion geography(Point, 4326), con traspaso de datos en la migración.
-- [x] El cliente publica capturando GPS (app/solicitar.tsx).
-- [x] La lista del profesional filtra por sus rubros y su radio, calcula distancia con PostGIS (ST_DWithin + ST_Distance) y ordena de más cerca a más lejos.
-- [x] TrabajoDto.distanciaKm visible en la tarjeta.
+### 4.1 Arreglar primero (detectado probando el 2026-08-11)
 
-APP MOBILE (EXPO SDK 54):
-- [x] Proyecto Expo SDK 54 en mobile/ funcionando en dispositivo real (Moto E32 vía Expo Go) contra el backend en LAN (0.0.0.0:5100) y Supabase.
-- [x] Navegación con expo-router, tabs según rol, token en SecureStore (Keychain/Keystore, no en texto plano), sistema de diseño centralizado en src/theme.ts, alta de petición, listado y cierre de sesión.
+- [ ] **1. El profesional no puede presupuestar desde la app.** La lista no es tocable: no hay detalle ni acción. Es el mayor bloqueo funcional. El backend ya soporta `POST /api/trabajos/{id}/postularse`. Al verificarlo, comprobar que el filtrado por rubro no lo esté ocultando. *Código listo en FIXES_SEGURIDAD_Y_BUGS.md (Fix 2), pendiente de aplicar y probar.*
+- [ ] **2. "Ubicación no especificada" confunde cuando sí hay dirección.** Solución elegida: geocodificar la dirección escrita con `Location.geocodeAsync` de expo-location (geocodificador del sistema, sin claves). *Código listo en FIXES_SEGURIDAD_Y_BUGS.md (Fix 3).*
+- [ ] **3. El cliente no puede editar una petición publicada.** Permitir editar mientras esté en "pendiente" (si ya hay profesional asignado, avisarle del cambio). *Versión 0.0.8.*
+- [ ] **4. La franja de "trabajos sin fecha" de la agenda no tiene acción.** Debe poder tocarse para abrir el trabajo y asignarle fecha.
 
-REGLAS DE NEGOCIO IMPLEMENTADAS (PARA NO REABRIRLAS):
-- Los trabajos propios del profesional se ven siempre, sin importar rubro ni radio: si tomó un trabajo y después movió su zona, no desaparece de su lista.
-- Un trabajo sin coordenadas se muestra a todos los profesionales con la leyenda "Ubicación no especificada" (evita que un cliente que niega el permiso de ubicación publique en el vacío sin enterarse).
+### 4.2 Ya completado (2026-08-09 a 2026-08-11)
+
+**Infraestructura y base de datos**
+- [x] Clean Architecture en .NET 9 (toolchain .NET 9.0.316, Node 22.16), EF Core 9.
+- [x] Proyecto Supabase en São Paulo (PostgreSQL 17.6) con extensiones postgis y btree_gist.
+- [x] Proveedor EF migrado a Npgsql.EntityFrameworkCore.PostgreSQL + NetTopologySuite con `EnableRetryOnFailure(3)`.
+- [x] Esquema bajo EF Migrations (InitialCreate y siguientes), catálogo de 10 servicios sembrado y usuarios de prueba recreados.
+- [x] RLS habilitado en las 9 tablas de `public` (migración HabilitarRls): ENABLE sin FORCE, sin políticas. La API conecta con el rol postgres (BYPASSRLS); los roles anon y authenticated de PostgREST no ven ninguna fila.
+
+**Perfil profesional**
+- [x] Usuarios sumó: `tipo_perfil` (persona/empresa, ortogonal al rol), `razon_social`, `cuit`, `descripcion`, `ubicacion` (geography(Point, 4326) + índice GiST), `radio_cobertura_km` y `disponible`.
+- [x] Endpoints en `/api/profesionales/me/`: perfil (GET/PUT), ubicacion (PUT), servicios (PUT).
+- [x] El perfil devuelve `faltantes`, calculado en el servidor para que app y web no se contradigan.
+- [x] App: `app/profesional/{editar,rubros,zona}.tsx` y el tab de perfil como centro del onboarding.
+
+**Geolocalización**
+- [x] `Trabajos.latitud_destino/longitud_destino` migrados a `ubicacion geography(Point, 4326)` con traspaso de datos.
+- [x] El cliente publica capturando GPS (`app/solicitar.tsx`).
+- [x] La lista del profesional filtra por rubros y radio, calcula distancia con PostGIS (`ST_DWithin` + `ST_Distance`) y ordena por cercanía.
+- [x] `TrabajoDto.distanciaKm` visible en la tarjeta.
+
+**App mobile (Expo SDK 54)**
+- [x] Funciona en dispositivo real (Moto E32 vía Expo Go) contra el backend en LAN y Supabase.
+- [x] expo-router, tabs según rol, token en SecureStore, sistema de diseño en `src/theme.ts`, alta de petición, listado y cierre de sesión.
+
+### 4.3 Reglas de negocio implementadas (no reabrir)
+
+- Los trabajos propios del profesional se ven siempre, sin importar rubro ni radio: si movió su zona después de tomarlo, no desaparece.
+- Un trabajo sin coordenadas se muestra a todos los profesionales con la leyenda "Ubicación no especificada" (para que el cliente que niega el permiso no publique en el vacío).
 - Si el profesional no cargó ubicación o radio, no se filtra por cercanía (mejor mostrar todo que una lista vacía sin explicación).
-- Radios ofrecidos: 5, 10, 15 y 20 km. La base admite 1–200 como cota de cordura; la restricción a esos cuatro valores es decisión de producto.
-- No se muestran coordenadas crudas en pantalla: se usa geocodificación inversa del sistema operativo para mostrar barrio y ciudad, con respaldo a un texto genérico si falla.
+- Radios ofrecidos: 5, 10, 15 y 20 km. La base admite 1–200 como cota de cordura; la restricción a esos valores es decisión de producto.
+- No se muestran coordenadas crudas: se usa geocodificación inversa del sistema operativo (barrio y ciudad), con texto genérico si falla.
 
-PARA LEVANTAR TODO EN LOCAL:
-  # Terminal 1 — backend (0.0.0.0 para que lo alcance el celular)
-  dotnet run --project Marketplace.Api --urls http://0.0.0.0:5100
+### 4.4 Pendientes técnicos conocidos
 
-  # Terminal 2 — app (siempre dentro de mobile/)
-  cd mobile; npx expo start
+- `Trabajos.latitud_inicio/longitud_inicio` siguen siendo numeric sueltos (punto de partida del profesional; hoy nadie los lee).
+- El selector persona/empresa no tiene pantalla (el modelo lo soporta; se dejó fuera a propósito).
+- Separar estado en Usuarios si quedan rastros de estado de sesión en la base (la sesión es JWT stateless).
+- Validación de DTOs: DataAnnotations en `CompletarTrabajoRequest` y requests de montos para impedir negativos.
+- CORS por entorno (`Program.cs:109`): `AllowAnyOrigin` solo en Development.
+- Sesión fantasma en la web (`useAuth.tsx:15`): inicializa desde localStorage sin validar contra `GET /api/auth/me` ni limpiar ante un 401.
+- Higiene de arquitectura: sacar `AppDbContext` de `TrabajosController` y la dependencia de Core → Delivery.DTOs.
+- **Migración a la carpeta `styles/`:** agendada en 0.0.14. Hasta entonces, solo las pantallas nuevas usan `styles/`.
+- "Tu perfil está completo" hoy solo valida rubros, ubicación y radio, no identidad ni matrícula (induce a error; se corrige en 0.0.7).
 
-Usuarios de prueba existentes (contraseña: Test1234!):
-- admin@oficiosya.com (Administrador)
-- juan@test.com (Juan Perez — cliente)
-- maria@test.com (Maria Garcia — cliente)
-- carlos@test.com (Carlos Lopez — profesional standard)
-- pedro@test.com (Pedro Martinez — profesional premium)
+---
 
-TRAMPAS TÉCNICAS QUE YA COSTARON TIEMPO:
-- Cambiar mobile/app.json no se propaga con una recarga: hay que reiniciar Metro y cerrar Expo Go por completo desde recientes (por eso se implementa la detección automática de IP LAN con expo-constants en client.ts).
-- mobile/.npmrc tiene legacy-peer-deps=true: sin eso expo install falla.
-- Nunca correr comandos de Expo con el directorio de trabajo en frontend/: instala expo donde no corresponde y reformatea tsconfig.json.
-- PowerShell no acepta &&; usar ;.
-- DotNetEnv rompe si hay comillas dobles dentro del valor en .env: la connection string va con comillas simples envolviendo todo el valor y la password sin comillas.
-- En Supabase Plan Gratuito los proyectos se pausan tras inactividad prolongada: se reactivan desde el dashboard sin perder datos.
+## 5. Cambio de reglas de negocio: suscripción al profesional (2026-08-10)
 
-=============================================================================
-4. DETECTADO PROBANDO EL 2026-08-11 — ARREGLAR PRIMERO
-=============================================================================
+El producto pasó de cobrar comisión por trabajo a cobrar suscripción al profesional. Esto invalida código que hoy funciona. Leer antes de tocar cualquier cosa relacionada con pagos.
 
-[ ] 1. El profesional no puede aceptar/presupuestar un trabajo desde la app:
-    - Se creó una petición y el profesional no pudo tomarla. La lista no es tocable: no hay detalle ni acción. Es el mayor bloqueo funcional.
-    - El backend ya soporta POST /api/trabajos/{id}/postularse.
-    - Al verificarlo, comprobar además si el filtrado por rubro no lo está ocultando (si el rubro del trabajo no está entre los del profesional, no aparece).
+### Modelo nuevo (el cliente no paga nunca)
+- **Suscripción mensual/anual:** acceso a los trabajos publicados y envío de presupuestos, ilimitados o según plan.
+- **Comisión por contacto (lead):** en ciertos planes, importe fijo por establecer contacto directo con un cliente.
 
-[ ] 2. "Ubicación no especificada" confunde cuando sí hay dirección:
-    - La etiqueta se muestra cuando el trabajo no tiene coordenadas, pero el cliente pudo haber escrito la dirección igual.
-    - Solución elegida: Geocodificar la dirección escrita usando Location.geocodeAsync de expo-location (usa el geocodificador del sistema, sin claves) para que tenga coordenadas aunque no se otorgue el permiso de GPS.
+### Obsoleto (eliminar o reemplazar, nunca reparar)
+- CuentaCorriente (ledger de deudas).
+- `Pagos.comision` y el 15 % en `CompletarAsync` (`TrabajoUseCase:134-190`).
+- `EstadoUsuario.Deudor` y `PagarDeudaAsync` (se reemplazan por estado de suscripción).
+- `CuentaCorrienteUseCase` y sus endpoints.
+- Pantalla "Mi saldo" (web/mobile) → "Mi suscripción".
+- Bloque 4.5 completo (cobros por comisión e híbrido MP): descartado.
 
-[ ] 3. El cliente no puede editar una petición publicada:
-    - Si se equivocó en la dirección, la fecha o la descripción, hoy solo puede cancelar y volver a publicar.
-    - Permitir editar mientras esté en estado "pendiente" (con un profesional ya asignado habría que avisarle del cambio).
+> El ledger append-only está bien construido y sirve para registrar movimientos de suscripción. Se aprovecha la estructura; cambia el significado de cada asiento.
 
-[ ] 4. La franja de "trabajos sin fecha" de la agenda no tiene acción:
-    - Es solo texto. Debería poder tocarse para abrir el trabajo y asignarle una fecha.
+### A construir
+- [ ] Suscripciones: plan, precio, vigencia (desde/hasta), estado, medio de pago.
+- [ ] Planes: nombre, precio mensual/anual, límite de presupuestos, si incluye rubros regulados.
+- [ ] Bloqueo de envío de presupuestos con suscripción vencida.
+- [ ] Cobro recurrente (Mercado Pago admite suscripciones).
+- [ ] Migración: dar de baja CuentaCorriente sin perder el historial.
 
-LO QUE SIGUE, EN ORDEN SUGERIDO (reemplazado por el plan de versiones de la sección 2.b):
-1. Detalle del trabajo y envío de presupuesto desde la app (POST /api/trabajos/{id}/postularse) + Revelación por etapas de direcciones (Seguridad #1).
-2. Verificación de matrículas (marcar qué rubros son regulados, estado de verificación por profesional, bloqueo de oferta sin verificar y circuito de revisión manual inicial). Ojo: el mensaje "Tu perfil está completo" hoy solo valida rubros, ubicación y radio, no identidad ni matrícula (induce a error).
-3. Foto de perfil (usando Supabase Storage).
-4. Icono de notificaciones en el inicio del profesional (el del cliente ya lo tiene).
-5. Calendario del profesional (ver 4.2.b) y disponibilidad horaria (Bloque 4).
-6. Suscripciones, que reemplazan al modelo de comisiones descartado + limpieza de código obsoleto de CuentaCorriente.
-7. Una vez cerrados los puntos anteriores y validado el diseño/flujo completo en la App Mobile, iniciar el Bloque 8 (Construcción y Rediseño de la Página Web).
+### Cambios en el flujo del trabajo
+- [ ] El cliente publica con presupuesto estimado y plazo: Trabajos necesita `presupuesto_estimado` y `plazo_deseado`.
+- [ ] Ubicación aproximada al publicar, exacta recién al asignar (ver SEGURIDAD.md, hallazgo 1).
+- [ ] Doble confirmación de trabajo terminado: estado `pendiente_confirmacion` entre `en_progreso` y `completado`; campos `confirmado_cliente` y `confirmado_profesional`; `completado` solo con ambas.
+- [ ] La reseña se habilita recién con la doble confirmación (`UQ_Resenias_trabajo`): 1–5 estrellas + comentario.
 
-PENDIENTES TÉCNICOS Y DE ARQUITECTURA CONOCIDOS:
-- Trabajos.latitud_inicio/longitud_inicio siguen siendo numeric sueltos (punto de partida del profesional al viajar; hoy nadie los lee).
-- El selector persona/empresa no tiene pantalla (el modelo lo soporta pero se dejó fuera a propósito).
-- Separar estado en Usuarios si aún quedan rastros del estado de sesión en DB (la sesión es JWT stateless).
-- Validación de DTOs: DataAnnotations en CompletarTrabajoRequest y requests de montos para impedir valores negativos.
-- CORS por entorno (Program.cs:109): AllowAnyOrigin solo en Development.
-- Sesión fantasma en el frontend web (useAuth.tsx:15): inicializa desde localStorage sin validar contra GET /api/auth/me ni limpiar localStorage ante un 401 en client.ts.
-- Higiene de arquitectura: sacar AppDbContext de TrabajosController y sacar la dependencia de Core -> Delivery.DTOs.
+### Verificación de matrículas (requisito, no mejora)
+- [ ] Marcar qué rubros son regulados en el catálogo de Servicios.
+- [ ] Estado de verificación por profesional: pendiente / verificado / rechazado.
+- [ ] Bloquear presupuestos en rubros regulados sin verificación.
+- [ ] Circuito de revisión (manual al principio).
 
-=============================================================================
-5. SEGURIDAD — ESTADO Y PRIORIDADES (Verificado en código)
-=============================================================================
+### GPS en lugar de coordenadas precargadas
+- [ ] Pedir permiso de ubicación explicando para qué se usa.
+- [ ] Si se niega, degradar con elegancia: geocodificar la dirección escrita o mostrar aviso claro.
+- [ ] Sin tabla de localidades precargadas: la ubicación sale del dispositivo.
 
-⛔ NO CORRER "npm audit fix --force" EN mobile/:
-Se evaluó y rompe el proyecto: intenta subir expo a 57.0.12 (no soportado por Expo Go de las tiendas) y bajar react-native de 0.81.5 a 0.72.17, dejando paquetes internos mezclados.
-Para actualizar dentro de lo que el SDK permite: npx expo install --fix.
+---
 
-HALLAZGOS EN CÓDIGO PROPIO (Atacar en orden antes de tener usuarios reales):
+## 6. Diseño de los bloques mobile y backend (3.4 a 7)
 
-🔴 ALTO — Explotable hoy:
-1. Fuga de direcciones de clientes:
-   - GetByProfesionalAsync (Marketplace.Api/Infrastructure/Data/Repositories/TrabajoRepository.cs:42) devuelve todos los trabajos sin asignar, y TrabajoDto incluye direccionDestino más las coordenadas exactas.
-   - Ataque: registrarse como profesional con un DNI inventado -> GET /api/trabajos -> dirección exacta de todos los clientes del sistema. Los usuarios son personas en su casa esperando a un desconocido; es el hallazgo más grave del proyecto.
-   - Solución diseñada (Revelación por etapas):
-     * Antes de asignarse: Barrio + distancia aproximada + coordenada redondeada (~2 a 3 decimales). Dos DTOs o sanitización en TrabajoPublicoDto (difuso) vs TrabajoAsignadoDto (exacto). Misma lógica para el teléfono del cliente.
-     * Turno confirmado: Dirección exacta solo para el profesional asignado.
-     * Trabajo completado: Revocado o conservado por ventana de disputa y luego anonimizado.
+### Bloques 3.4 y 3.5 — Scoring y concurrencia
+- Ranking más allá de la distancia:
+  `score = w1*(1/distancia) + w2*rating_promedio + w3*(premium?) + w4*tasa_aceptacion - w5*(suscripcion_vencida?)`
+- Concurrencia al aceptar: `UPDATE ... WHERE estado='pendiente'` condicional o token `xmin` de Postgres (hoy dos profesionales simultáneos pasan ambos la validación).
 
-2. DNI y matrícula sin verificar:
-   - Los campos dni y numero_matricula existen pero nada los valida. Cualquiera se declara "premium matriculado".
-   - Mínimo: revisión manual en el alta. Ideal: validar contra el registro correspondiente (gasistas -> ENARGAS; electricistas varía por jurisdicción).
+### Bloque 4 — Agenda, turnos y notificaciones
+Dos modos: **urgencia** (gas, destapación, cerrajería → proximidad, tracking y "lo antes posible") y **programado** (reforma, pintura, instalación → turno y recordatorio).
 
-3. Credenciales débiles y registro sin límites:
-   - Los usuarios de prueba usan Test1234!. El registro público (/api/auth/register/...) no tiene límite de intentos (Rate Limiting) ni verificación de email. Revisar y aplicar Rate Limiting antes de exponer la API.
+**4.0 El cliente elige la franja (estilo OSDE)**
+- Tabla Tareas (debajo de Servicios): `servicio_id`, `nombre`, `duracion_estimada_min`, `precio_referencia` (ej. Plomero → Cambiar flexible 60 min, Destapar cañería 90 min, Reparar termotanque 120 min, Reinstalación completa a presupuestar).
+- `ProfesionalTareas` permite sobrescribir duración y precio por profesional; las franjas libres usan la duración del profesional.
+- Tarea con duración conocida → turno con franja; trabajo a presupuestar → postulación.
 
-🟠 MEDIO:
-4. Código residual de cobros (PagarDeudaAsync y CuentaCorriente):
-   - PagarDeudaAsync limpiaba deuda sin pago real detrás. Con el cambio al modelo de suscripción, eliminar directamente esos endpoints y casos de uso obsoletos para no dejar superficie expuesta.
+**4.1 Modelo de agenda**
+- Turnos: `trabajo_id`, `profesional_id`, `franja` (tstzrange), `estado`.
+- Nuevo estado `agendado` entre `aceptado` y `viajando`.
+- `DisponibilidadProfesional`: horario laboral por día de la semana.
+- `GET /profesionales/{id}/disponibilidad?desde&hasta`.
+- Hold temporal del slot (~10 min) mientras el cliente reserva.
+- Sin horario cargado, degradar al flujo de postulaciones.
 
-5. Postulaciones visibles entre competidores:
-   - TrabajoDetalleDto.Postulaciones va completo a cualquiera que consulte el trabajo: un profesional ve los presupuestos de los demás y puede ofertar apenas por debajo.
-   - Solución: El profesional debe recibir solo la suya (más un booleano yaMePostule); el cliente recibe la lista completa.
+**4.1.b Anti-solapamiento en Postgres (requiere btree_gist)**
+```sql
+ALTER TABLE turnos ADD CONSTRAINT sin_solapamiento
+  EXCLUDE USING gist (profesional_id WITH =, franja WITH &&)
+  WHERE (estado <> 'cancelado');
+```
 
-6. Token de 24 h sin renovación ni revocación:
-   - Un token robado vale un día completo y no hay forma de invalidarlo, y en mobile pedir login a diario es motivo de desinstalación. Implementar Refresh Tokens y lista de revocación (o migrar a Supabase Auth).
+**4.2.b Calendario del profesional** (requiere `fecha_visita` en Trabajos)
+- Pestaña Agenda en la barra inferior del profesional.
+- Vista de hoy como entrada, mensual con marcas (evaluar react-native-calendars alineado con `styles/theme.ts`), lista del día por hora, aviso de solapamientos y franja tocable de trabajos sin agendar.
 
-🟢 BAJO — Vulnerabilidades de npm (19 reportadas, 3 causas raíz):
-- image-size 1.2.1 (alta: DoS parseando ICNS/JXL/HEIF), postcss 8.4.49 (alta: lectura vía sourceMappingURL), uuid 7.0.3 (media: límites de buffer).
-- El riesgo real es bajo porque los tres corren solo en la cadena de compilación local (Metro, CSS, generación Xcode) y ninguno viaja en el bundle al teléfono.
-- Higiene pendiente: activar Dependabot en GitHub y npm audit en CI para detectar vulnerabilidades nuevas.
+**4.2 Calendarios externos**
+- MVP: archivo .ics / "Agregar al calendario" (sin OAuth; Google, Apple, Outlook).
+- Después: OAuth con Google Calendar (`calendar.events` es scope sensible y exige verificación de Google; fuera del camino crítico del lanzamiento).
 
-=============================================================================
-6. DISEÑO DETALLADO DE LOS BLOQUES MOBILE Y BACKEND (3.4 a 7)
-=============================================================================
+**4.3 Notificaciones y privacidad legal**
+- MVP: push con Expo Notifications (confirmación de turno, recordatorio, profesional en camino).
+- Después: WhatsApp Business Platform (Meta Cloud API / Twilio / 360dialog): plantillas aprobadas, pago por conversación utility, cuenta verificada y ventana de 24 h.
+- Refresh tokens de Google y mensajes a teléfonos implican datos personales bajo la Ley 25.326. Revisar antes de producción.
 
-BLOQUE 3.4 y 3.5 — SCORING Y CONCURRENCIA:
-- Ranking sugerido más allá de la distancia:
-  score = w1*(1/distancia) + w2*rating_promedio + w3*(premium?) + w4*tasa_aceptacion - w5*(suscripcion_vencida?)
-- Concurrencia al aceptar trabajo: Aceptar con UPDATE ... WHERE estado='pendiente' condicional o token de concurrencia xmin de Postgres (hoy dos profesionales simultáneos pasan ambos la validación).
-
-BLOQUE 4 — AGENDA, TURNOS Y NOTIFICACIONES:
-El producto tiene dos modos: urgencia (gas, destapación, cerrajería -> proximidad, tracking y opción "lo antes posible") y programado (reforma, pintura, instalación -> turno y recordatorio).
-- 4.0 El cliente elige la franja (estilo OSDE):
-  * Nueva tabla Tareas (debajo de Servicios): servicio_id, nombre, duracion_estimada_min, precio_referencia (ej. Plomero -> Cambiar flexible 60 min, Destapar cañería 90 min, Reparar termotanque 120 min, Reinstalación completa a presupuestar). Da transparencia de precios.
-  * Duración configurable: Tareas.duracion_estimada_min es por defecto; cada profesional puede sobrescribirlo en ProfesionalTareas (duracion_min y precio propios). El cálculo de franjas libres usa la duración del profesional.
-  * Línea divisoria: tarea con duración conocida -> turno con franja; trabajo a presupuestar (reforma/obra) -> postulación.
-- 4.1 Modelo de agenda:
-  * Turnos: trabajo_id, profesional_id, franja (tstzrange), estado.
-  * Nuevo estado agendado entre aceptado y viajando.
-  * DisponibilidadProfesional: horario laboral por día de la semana.
-  * Endpoint de slots libres: GET /profesionales/{id}/disponibilidad?desde&hasta.
-  * Hold temporal del slot (~10 min) mientras el cliente completa la reserva.
-  * Si el profesional no cargó horario, degradar con elegancia al flujo de postulaciones.
-- 4.1.b Anti-solapamiento a nivel motor en Postgres (requiere btree_gist):
-  ALTER TABLE turnos ADD CONSTRAINT sin_solapamiento
-    EXCLUDE USING gist (profesional_id WITH =, franja WITH &&)
-    WHERE (estado <> 'cancelado');
-- 4.2.b Calendario del profesional en la app (requiere agregar fecha_visita en Trabajos):
-  * Nueva pestaña Agenda en la barra inferior del profesional.
-  * Vista de "hoy" como entrada, vista mensual con marcas (evaluar react-native-calendars alineado con theme.ts), lista del día ordenada por hora, aviso visual de solapamientos y franja superior tocable de trabajos "sin agendar".
-- 4.2 Sincronización con calendarios externos:
-  * MVP: archivo .ics / link "Agregar al calendario" (cero OAuth, funciona con Google/Apple/Outlook).
-  * Después: OAuth 2.0 con Google Calendar (ojo: calendar.events es un scope sensible que exige verificación de seguridad de Google al escalar; no poner en el camino crítico del lanzamiento).
-- 4.3 Notificaciones y Privacidad Legal:
-  * MVP: push con Expo Notifications (gratis, instantáneo). Cubre confirmación de turno, recordatorio previo y profesional en camino.
-  * Después: WhatsApp Business Platform (Cloud API de Meta / Twilio / 360dialog). Exige plantillas aprobadas por Meta para iniciar conversación, pago por conversación "utility", cuenta verificada y ventana de 24h.
-  * Datos personales: Guardar refresh tokens de Google y mandar mensajes a teléfonos implica tratar datos personales regulados en Argentina por la Ley 25.326. Revisar antes de salir a producción.
-
-BLOQUE 5 — TIEMPO REAL:
-- [ ] Tracking del profesional en viaje vía Supabase Realtime (suscripción a cambios de ultima_ubicacion en Usuarios, sin polling).
+### Bloque 5 — Tiempo real
+- [ ] Tracking del profesional en viaje vía Supabase Realtime (cambios de `ultima_ubicacion`, sin polling).
 - [ ] Push cuando aparece un trabajo en el radio del profesional.
 - [ ] Estados del trabajo en vivo sin refrescar.
 
-BLOQUE 6 — APP MOBILE CON EXPO (Cierre de la App):
+### Bloque 6 — Cierre de la app mobile
 - [ ] Detalle del trabajo interactivo (postularse, cambiar estado, confirmar finalización).
 - [ ] Ficha del profesional: matrícula y reseñas verificadas arriba de todo.
 - [ ] Mi suscripción (reemplaza a Mi saldo).
-- [ ] Development build con EAS (Expo Go no alcanza para react-native-maps ni push notifications).
-- [ ] Mapa de cercanía y evaluación de migración a Supabase Auth (login con Google, recuperación de contraseña y OTP por SMS).
+- [ ] Development build con EAS (Expo Go no alcanza para react-native-maps ni push).
+- [ ] Mapa de cercanía y decisión sobre Supabase Auth (ver Decisiones abiertas).
 
-BLOQUE 7 — CALIDAD Y CI ANTES DE PRODUCCIÓN:
-- [ ] Tests automatizados de los casos de uso críticos (postulación, asignación, doble confirmación y suscripciones).
+### Bloque 7 — Calidad y CI antes de producción
+- [ ] Tests de los casos de uso críticos: postulación, asignación, doble confirmación y suscripciones (ver TESTING.md).
 - [ ] Paginación en todos los listados.
-- [ ] Postulaciones con estado (pendiente/aceptada/rechazada) para notificar a los postulantes no elegidos.
-- [ ] CI en GitHub Actions (.github/workflows).
+- [ ] Postulaciones con estado (pendiente/aceptada/rechazada) para notificar a los no elegidos.
+- [ ] CI en GitHub Actions (`.github/workflows`) con `dotnet test` y Dependabot.
 
-EL DIFERENCIADOR EN EL MODELO DE DATOS (DECISIONES FIRMES):
-- Flujo de matching híbrido: Búsqueda directa cuando hay densidad de profesionales; postulaciones como red de contención cuando no hay nadie cerca. Implica lanzar por barrio, no por ciudad.
-- Lo que Facebook Marketplace o MercadoLibre estructuralmente no pueden ofrecer:
-  1. nivel_profesional = premium + numero_matricula -> credencial verificable (un gasista matriculado es una categoría legal).
-  2. UQ_Resenias_trabajo -> una reseña solo existe si hubo un trabajo completado con doble confirmación.
-- Comparables de mercado para estudiar: Thumbtack y Angi (EE.UU.), Habitissimo (España), IguanaFix (Argentina).
+### El diferenciador en el modelo de datos (decisiones firmes)
+- Matching híbrido: búsqueda directa donde hay densidad de profesionales; postulaciones como red de contención donde no hay nadie cerca. Implica lanzar por barrio.
+- Lo que Facebook Marketplace o MercadoLibre no pueden ofrecer:
+  1. `nivel_profesional = premium` + `numero_matricula` → credencial verificable (un gasista matriculado es una categoría legal).
+  2. `UQ_Resenias_trabajo` → una reseña solo existe si hubo un trabajo completado con doble confirmación.
+- Comparables: Thumbtack y Angi (EE.UU.), Habitissimo (España), IguanaFix (Argentina).
 
-=============================================================================
-7. BLOQUE 8 — PLATAFORMA WEB DE PRODUCCIÓN (frontend/)
-=============================================================================
+---
 
-> CONDICIÓN DE ENTRADA: Este bloque se inicia ÚNICAMENTE cuando el diseño, la lógica de negocio y el funcionamiento de la App Mobile (Bloques 1 al 7) estén finalizados y validados. Así se diseña y construye la web una sola vez sobre contratos de API definitivos.
+## 7. Bloque 8 — Plataforma web de producción (`frontend/`)
 
-Una vez terminada la App Mobile, frontend/ deja de ser un banco de pruebas y se transforma en la Plataforma Web oficial de OficiosYa, cumpliendo obligatoriamente con estos 4 pilares:
+> **Condición de entrada:** solo se inicia cuando el diseño, la lógica y el funcionamiento de la app mobile (Bloques 1 a 7) estén finalizados y validados, para construir la web una sola vez sobre contratos de API definitivos.
 
------------------------------------------------------------------------------
-8.1 REQUISITOS OBLIGATORIOS DE ARQUITECTURA WEB
------------------------------------------------------------------------------
-- [ ] Contratos y Tipos Compartidos: Sincronizar interfaces TypeScript (DTOs de Trabajos, Usuarios, Postulaciones, Turnos y Suscripciones) con lo ya validado en mobile/ para evitar discrepancias entre clientes.
-- [ ] Cliente HTTP Centralizado e Interceptores (client.ts):
-      * Inyección automática de credenciales/tokens.
-      * Manejo global de respuestas HTTP 401 (intentar rotación con Refresh Token y, si falla, limpiar sesión y redirigir a /login).
-      * Eliminación de la "Sesión Fantasma" (useAuth.tsx:15): Validar el estado de sesión real contra GET /api/auth/me al montar la aplicación en lugar de confiar ciegamente en localStorage.
-- [ ] Gestión de Estado de Servidor y Caché: Uso de caché con revalidación (ej. TanStack Query / React Query) para listados, postulaciones y agenda, evitando estados locales desincronizados.
-- [ ] Code Splitting y Rutas Protegidas por Rol (Lazy Loading): Separar los bundles de vistas públicas, panel de Cliente, portal de Profesional/Empresa y Backoffice de Administrador mediante guardias de ruta (ProtectedRoute) que verifiquen rol y estado de suscripción.
-- [ ] SEO Técnico y Performance (Core Web Vitals):
-      * Metaetiquetas dinámicas (título, descripción, OpenGraph) para que los links de perfiles profesionales y búsquedas por oficio/barrio previsualicen bien al compartirse por WhatsApp o buscadores.
-      * Variables de entorno estrictamente tipadas (VITE_API_URL) sin URLs ni IPs hardcodeadas.
+### 8.1 Arquitectura web
+- [ ] **Tipos compartidos:** interfaces TypeScript de Trabajos, Usuarios, Postulaciones, Turnos y Suscripciones sincronizadas con `mobile/`.
+- [ ] **Cliente HTTP centralizado (`client.ts`):** inyección automática de credenciales; manejo global de 401 (rotar con refresh token y, si falla, limpiar sesión y redirigir a /login); eliminar la sesión fantasma de `useAuth.tsx:15` validando contra `GET /api/auth/me` al montar.
+- [ ] **Estado de servidor y caché** con revalidación (TanStack Query) para listados, postulaciones y agenda.
+- [ ] **Code splitting y rutas protegidas por rol:** bundles separados para vistas públicas, Cliente, Profesional/Empresa y Admin, con `ProtectedRoute` que verifica rol y estado de suscripción.
+- [ ] **SEO y performance:** metaetiquetas dinámicas (título, descripción, OpenGraph) para que perfiles y búsquedas por oficio/barrio se previsualicen bien en WhatsApp y buscadores; variables de entorno tipadas (`VITE_API_URL`), sin URLs ni IPs hardcodeadas.
 
------------------------------------------------------------------------------
-8.2 REQUISITOS OBLIGATORIOS DE DISEÑO (UI/UX)
------------------------------------------------------------------------------
-- [ ] Sistema de Diseño Unificado con Mobile: Trasladar los tokens visuales de mobile/src/theme.ts (paleta de colores, tipografías, radios de borde, badges de estados) a variables CSS / Tailwind para que App y Web se sientan el mismo producto.
-- [ ] Diseño Responsive Adaptado al Contexto de Uso:
-      * Mobile-Web First para Clientes: Quien entra desde un link en el celular sin tener la app instalada debe poder pedir un presupuesto o ver la ficha de un profesional con la misma fluidez que en la app.
-      * Desktop-Optimized para Profesionales, Empresas y Admin: Aprovechar la pantalla grande con tablas densas, vista de calendario semanal/mensual a pantalla completa, administración de operarios y descarga de comprobantes de suscripción.
-- [ ] Jerarquía Visual de Confianza (El Diferenciador): En la ficha web del profesional, el sello de Matrícula Verificada (ENARGAS / ente regulador), el número de credencial y las reseñas de trabajos doblemente confirmados deben ubicarse arriba del pliegue (above the fold), nunca escondidos al pie.
-- [ ] Feedback Visual y Accesibilidad (WCAG AA):
-      * Skeletons de carga en lugar de pantallas en blanco o saltos de layout (CLS).
-      * Estados vacíos accionables (ej. "No hay plomeros disponibles en este horario -> Publicar solicitud para recibir presupuestos").
-      * Navegación completa por teclado, foco visible, etiquetas ARIA en formularios y contraste legible.
+### 8.2 Diseño (UI/UX)
+- [ ] **Sistema de diseño unificado:** todo el diseño en `frontend/src/styles/` (CONVENCIONES.md §5). Los tokens de `mobile/src/styles/theme.ts` se traducen a variables en `styles/tokens.css`, y cada componente usa su CSS Module en `styles/componentes/`.
+- [ ] **Responsive según el uso:** mobile-web first para clientes (pedir presupuesto o ver una ficha desde un link sin la app); desktop para Profesionales, Empresas y Admin (tablas densas, calendario a pantalla completa, operarios, comprobantes).
+- [ ] **Jerarquía de confianza:** sello de matrícula verificada (ENARGAS / ente regulador), número de credencial y reseñas con doble confirmación arriba del pliegue.
+- [ ] **Feedback y accesibilidad (WCAG AA):** skeletons en vez de pantallas en blanco o saltos de layout; estados vacíos accionables ("No hay plomeros disponibles en este horario → Publicar solicitud"); navegación por teclado, foco visible, ARIA en formularios y contraste legible.
 
------------------------------------------------------------------------------
-8.3 REQUISITOS OBLIGATORIOS DE SEGURIDAD WEB
------------------------------------------------------------------------------
-- [ ] Almacenamiento Seguro de Sesión (Mitigación de XSS y Robo de Tokens):
-      * Reemplazar el guardado de JWT de larga duración en localStorage plano por cookies HttpOnly + Secure + SameSite=Strict (o Access Token de corta vida en memoria RAM + Refresh Token en cookie HttpOnly).
-- [ ] Política de CORS Estricta en Backend: Configurar CORS_ORIGINS en Marketplace.Api para que en producción solo acepte peticiones desde el dominio web oficial (prohibido AllowAnyOrigin fuera de Development).
-- [ ] Cabeceras de Seguridad HTTP (Security Headers): Configurar en el servidor web / CDN:
-      * Content-Security-Policy (CSP) restringiendo orígenes de scripts, estilos y conexiones API.
-      * X-Content-Type-Options: nosniff
-      * X-Frame-Options: DENY (anti-clickjacking)
-      * Referrer-Policy: strict-origin-when-cross-origin
-      * Strict-Transport-Security (HSTS) bajo HTTPS obligatorio.
-- [ ] Prevención de XSS y Sanitización de Contenido de Usuarios: Escapar y sanitizar descripciones de trabajos, comentarios de presupuestos, razones sociales y reseñas antes de renderizarlos, sin usar nunca inyección de HTML crudo (dangerouslySetInnerHTML).
-- [ ] Cumplimiento de Privacidad yRevelación por Etapas en Web:
-      * Ningún componente ni respuesta de red en el navegador (DevTools -> Network) debe exponer direccionDestino exacta, coordenadas sin redondear ni teléfonos de clientes en trabajos no asignados.
-      * Aviso de privacidad y tratamiento de datos personales acorde a la Ley 25.326 (Argentina).
+### 8.3 Seguridad web
+- [ ] **Sesión segura:** nada de JWT de larga duración en localStorage; cookies HttpOnly + Secure + SameSite=Strict, o access token corto en memoria + refresh token en cookie HttpOnly.
+- [ ] **CORS estricto:** `CORS_ORIGINS` solo con el dominio oficial (`AllowAnyOrigin` prohibido fuera de Development).
+- [ ] **Security headers:** Content-Security-Policy, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, HSTS bajo HTTPS obligatorio.
+- [ ] **Prevención de XSS:** escapar descripciones, comentarios, razones sociales y reseñas; nunca `dangerouslySetInnerHTML`.
+- [ ] **Privacidad por etapas en web:** ninguna respuesta visible en DevTools → Network expone dirección exacta, coordenadas sin redondear ni teléfonos en trabajos no asignados; aviso de privacidad acorde a la Ley 25.326.
 
------------------------------------------------------------------------------
-8.4 REQUISITOS OBLIGATORIOS DE FUNCIONALIDAD WEB
------------------------------------------------------------------------------
-- [ ] 1. Landing Pública y Adquisición (Sin Login):
-      * Buscador público por rubro y barrio/zona con precios y duraciones de referencia del catálogo de Tareas ("Cambiar flexible: ~60 min").
-      * Perfiles públicos compartibles de profesionales verificados (URL limpia para que el profesional comparta su ficha verificada por WhatsApp).
-      * Llamados a la acción (CTA) claros para descargar la App Mobile o registrarse en el momento.
-- [ ] 2. Portal del Cliente:
-      * Alta y edición de solicitudes de trabajo (con presupuesto estimado, plazo deseado y autocompletado/geocodificación de dirección o GPS del navegador).
-      * Comparador de presupuestos recibidos y reserva de turnos por franja horaria (con hold temporal de 10 minutos).
-      * Botón de Doble Confirmación de trabajo finalizado y formulario de reseña verificada (1 a 5 estrellas + comentario).
-- [ ] 3. Portal del Profesional y Panel de Empresa:
-      * Pantalla "Mi Suscripción" (reemplaza a la obsoleta "Mi Saldo"): selección de plan mensual/anual, estado de vigencia, historial de pagos e integración con el checkout de Mercado Pago Suscripciones.
-      * Carga de documentación para verificación de identidad (DNI) y matrícula profesional en rubros regulados.
-      * Agenda web interactiva (vista diaria, semanal y mensual + trabajos sin fecha asignada + exportación .ics).
-      * Gestión de perfil de Empresa: administración de operarios asociados, rubros, precios/duraciones propias (ProfesionalTareas) y radio de cobertura en mapa.
-- [ ] 4. Backoffice de Administración (Rol Admin):
-      * Bandeja de validación de matrículas y credenciales (aprobar / rechazar profesionales en rubros regulados como Gasista o Electricista).
-      * ABM del catálogo de Servicios (marcando cuáles son regulados), Tareas (duración y precio de referencia) y Planes de suscripción.
-      * Panel de auditoría de trabajos, usuarios y resolución de disputas.
+### 8.4 Funcionalidad web
+- [ ] **Landing pública (sin login):** buscador por rubro y barrio con precios y duraciones de referencia de Tareas; perfiles públicos compartibles de profesionales verificados (URL limpia para WhatsApp); CTA para descargar la app o registrarse.
+- [ ] **Portal del cliente:** alta y edición de solicitudes (presupuesto estimado, plazo, autocompletado/geocodificación o GPS del navegador); comparador de presupuestos y reserva de franja con hold de 10 min; doble confirmación y reseña verificada.
+- [ ] **Portal del profesional y empresa:** Mi Suscripción (plan, vigencia, historial de pagos, checkout de Mercado Pago Suscripciones); carga de DNI y matrícula para rubros regulados; agenda web (diaria, semanal, mensual, sin fecha, exportación .ics); gestión de empresa (operarios, rubros, `ProfesionalTareas`, radio en mapa).
+- [ ] **Backoffice de administración:** bandeja de validación de matrículas; ABM de Servicios (marcando regulados), Tareas y Planes; auditoría de trabajos, usuarios y resolución de disputas.
