@@ -1,7 +1,7 @@
 # ROADMAP — OficiosYa (Marketplace de servicios del hogar)
 
 > **Estado al día:** versión en curso **[COMPLETAR, ej. 0.0.6]** · última revisión **[COMPLETAR fecha]**.
-> La convención de ramas está en CONVENCIONES.md, la seguridad en SEGURIDAD.md y el entorno local y las trampas técnicas en DESPLIEGUE.md.
+> La convención de ramas está en CONVENCIONES.md y la seguridad en SEGURIDAD.md.
 
 **Estrategia de producto (secuencial):**
 1. **Fase actual (mobile-first):** terminar al 100 % el diseño y funcionamiento de la app en Expo (`mobile/`). Mientras tanto, `frontend/` solo es banco de pruebas técnico.
@@ -71,8 +71,8 @@ No se hace un PR por cambio: cada versión es un PR a master que sube `version` 
 
 ### 4.1 Arreglar primero (detectado probando el 2026-08-11)
 
-- [ ] **1. El profesional no puede presupuestar desde la app.** La lista no es tocable: no hay detalle ni acción. Es el mayor bloqueo funcional. El backend ya soporta `POST /api/trabajos/{id}/postularse`. Al verificarlo, comprobar que el filtrado por rubro no lo esté ocultando. *Código listo en FIXES_SEGURIDAD_Y_BUGS.md (Fix 2), pendiente de aplicar y probar.*
-- [ ] **2. "Ubicación no especificada" confunde cuando sí hay dirección.** Solución elegida: geocodificar la dirección escrita con `Location.geocodeAsync` de expo-location (geocodificador del sistema, sin claves). *Código listo en FIXES_SEGURIDAD_Y_BUGS.md (Fix 3).*
+- [ ] **1. El profesional no puede presupuestar desde la app.** La lista no es tocable: no hay detalle ni acción. Es el mayor bloqueo funcional. El backend ya soporta `POST /api/trabajos/{id}/postularse`. Al verificarlo, comprobar que el filtrado por rubro no lo esté ocultando.
+- [ ] **2. "Ubicación no especificada" confunde cuando sí hay dirección.** Solución elegida: geocodificar la dirección escrita con `Location.geocodeAsync` de expo-location (geocodificador del sistema, sin claves).
 - [ ] **3. El cliente no puede editar una petición publicada.** Permitir editar mientras esté en "pendiente" (si ya hay profesional asignado, avisarle del cambio). *Versión 0.0.8.*
 - [ ] **4. La franja de "trabajos sin fecha" de la agenda no tiene acción.** Debe poder tocarse para abrir el trabajo y asignarle fecha.
 
