@@ -11,8 +11,6 @@
 | CONVENCIONES.md | Estilo de código, acceso a datos, errores, enums, Git | Al escribir o revisar código |
 | TESTING.md | Cómo y qué testear | Al escribir tests o cerrar un cambio |
 | SEGURIDAD.md | Hallazgos abiertos, controles previos al lanzamiento, checklist de 19 controles y errores criptográficos | Al tocar auth, datos personales, archivos o endpoints nuevos |
-| DESPLIEGUE.md | Entornos, variables, entorno local, trampas técnicas | Al configurar, levantar o desplegar |
-| FIXES_SEGURIDAD_Y_BUGS.md | Código de los fixes prioritarios | Al implementar o revisar esos fixes |
 
 Si dos documentos se contradicen, gana el más específico para el tema (por ejemplo, CONVENCIONES.md sobre Git). Si la contradicción afecta una decisión de negocio, señalala y preguntá antes de seguir.
 
